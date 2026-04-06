@@ -922,6 +922,7 @@ function MainApp({ user, onLogout }) {
   const [safetyChecks, setSafetyChecks] = useState([false, false, false]);
   const [signed, setSigned] = useState(false);
   const [signedTime, setSignedTime] = useState(null);
+  const [selectedProject, setSelectedProject] = useState("");
 
   // Attendance state
   const [checkedIn, setCheckedIn] = useState(false);
@@ -1032,17 +1033,74 @@ function MainApp({ user, onLogout }) {
 
   const SafetyScreen = () => {
     const allChecked = safetyChecks.every(Boolean);
+    const canSign = allChecked && selectedProject !== "";
+
     const handleSign = () => {
-      if (!allChecked) return;
+      if (!canSign) return;
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
       setSigned(true);
       setSignedTime(t);
       showToast("✅ 安全守則簽署完成！");
     };
 
+    const PROJECTS_LIST = [
+      "觀塘工業大廈 - A座",
+      "旺角商業中心 - 電梯升級",
+      "荃灣住宅項目 - B棟",
+      "沙田新城市廣場",
+      "屯門商場翻新",
+    ];
+
     return (
       <>
-        <div className="section-label">請閱讀以下安全守則</div>
+        {/* Step 1: Select Project */}
+        <div className="section-label">第一步 — 選擇今日工程</div>
+        {!signed ? (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {PROJECTS_LIST.map((p, i) => (
+                <div key={i}
+                  onClick={() => setSelectedProject(p)}
+                  style={{
+                    background: selectedProject === p ? "var(--orange-glow)" : "var(--surface)",
+                    border: `1.5px solid ${selectedProject === p ? "var(--orange)" : "var(--border)"}`,
+                    borderRadius: 14, padding: "14px 16px",
+                    display: "flex", alignItems: "center", gap: 12,
+                    cursor: "pointer", transition: "all 0.15s",
+                  }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: "50%",
+                    border: `2.5px solid ${selectedProject === p ? "var(--orange)" : "var(--border)"}`,
+                    background: selectedProject === p ? "var(--orange)" : "transparent",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, transition: "all 0.15s",
+                  }}>
+                    {selectedProject === p && <span style={{ fontSize: 12, color: "#fff", fontWeight: 900 }}>✓</span>}
+                  </div>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: selectedProject === p ? "var(--orange)" : "var(--text)" }}>
+                    🏗️ {p}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {selectedProject === "" && (
+              <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", marginTop: 8 }}>
+                ⚠️ 請先選擇今日工程先可簽署
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ background: "var(--orange-glow)", border: "1.5px solid var(--orange)", borderRadius: 14, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>🏗️</span>
+            <div>
+              <div style={{ fontSize: 11, color: "var(--orange)", fontWeight: 700, marginBottom: 2 }}>今日工程</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>{selectedProject}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Read & Sign */}
+        <div className="section-label">第二步 — 閱讀並簽署安全守則</div>
         <div className="safety-scroll">
           <strong>第一條 — 個人防護裝備</strong>
           所有進入施工現場人員必須全程佩戴安全帽、安全鞋及反光背心。電梯槽內作業必須配備安全繩及防墜落裝置。
@@ -1076,21 +1134,22 @@ function MainApp({ user, onLogout }) {
         ))}
 
         {signed ? (
-          <>
-            <div className="sign-area signed">
-              <div style={{ fontSize: 28 }}>✅</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>已於 {signedTime} 完成簽署</div>
-              <div style={{ fontSize: 11, color: "var(--muted)" }}>時間戳記已記錄至系統</div>
-            </div>
-          </>
+          <div className="sign-area signed">
+            <div style={{ fontSize: 28 }}>✅</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>已於 {signedTime} 完成簽署</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>工程：{selectedProject}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>時間戳記已記錄至系統</div>
+          </div>
         ) : (
           <>
-            <div className="sign-area">
+            <div className="sign-area" style={{ opacity: canSign ? 1 : 0.5 }}>
               <div style={{ fontSize: 28 }}>✍️</div>
-              <div>點擊下方按鈕確認簽署</div>
+              <div style={{ fontSize: 13, color: "var(--muted)" }}>
+                {!selectedProject ? "請先選擇工程" : !allChecked ? "請勾選所有確認項目" : "點擊下方按鈕確認簽署"}
+              </div>
             </div>
             <button
-              className={`big-btn ${allChecked ? "success" : "disabled"}`}
+              className={`big-btn ${canSign ? "success" : "disabled"}`}
               onClick={handleSign}
             >
               <span className="big-btn-icon">✍️</span>
