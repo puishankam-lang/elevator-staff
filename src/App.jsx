@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-
+import React, { useState, useEffect } from "react";
 /* ─────────────────────────────────────────────
    DESIGN: Industrial Safety Orange + Near-Black
    Ultra-minimal, oversized tap targets, icon-first
