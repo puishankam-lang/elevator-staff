@@ -930,6 +930,14 @@ function MainApp({ user, onLogout }) {
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
   const [clockTick, setClockTick] = useState(new Date());
+  const [isInZone, setIsInZone] = useState(true); // GPS zone status
+  const [gpsWatching, setGpsWatching] = useState(false);
+  const [autoCheckoutTime] = useState("19:00"); // auto checkout at 7pm
+  const AUTO_CHECKOUT_HOUR = 19;
+  const AUTO_CHECKOUT_MIN = 0;
+  const SITE_LAT = 22.3193;
+  const SITE_LNG = 114.1694;
+  const ZONE_RADIUS = 150; // metres
 
   // Progress state
   const [selectedPct, setSelectedPct] = useState(null);
@@ -940,10 +948,61 @@ function MainApp({ user, onLogout }) {
   // Salary view
   const [salaryMonth, setSalaryMonth] = useState(0);
 
+  // Haversine distance formula (metres)
+  const getDistance = (lat1, lng1, lat2, lng2) => {
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  };
+
   useEffect(() => {
     const t = setInterval(() => setClockTick(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  // Auto-checkout at set time if not signed out
+  useEffect(() => {
+    if (!checkedIn || checkedOut) return;
+    const now = clockTick;
+    const h = now.getHours();
+    const m = now.getMinutes();
+    if (h === AUTO_CHECKOUT_HOUR && m === AUTO_CHECKOUT_MIN) {
+      const t = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+      setCheckedOut(true);
+      setCheckOutTime(t + " （系統自動）");
+      showToast("🕖 已自動簽退（" + t + "）");
+    }
+  }, [clockTick, checkedIn, checkedOut]);
+
+  // Real-time GPS zone detection when app is open
+  useEffect(() => {
+    if (!checkedIn || checkedOut) return;
+    if (!navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const dist = getDistance(pos.coords.latitude, pos.coords.longitude, SITE_LAT, SITE_LNG);
+        const inZone = dist <= ZONE_RADIUS;
+        setIsInZone(inZone);
+        setGpsWatching(true);
+
+        // Auto sign out when leaving zone
+        if (!inZone && checkedIn && !checkedOut) {
+          const now = new Date();
+          const t = now.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
+          setCheckedOut(true);
+          setCheckOutTime(t + " （GPS 自動）");
+          showToast("📍 已離開工地範圍，系統自動簽退");
+        }
+      },
+      (err) => { setGpsWatching(false); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [checkedIn, checkedOut]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -1186,20 +1245,37 @@ function MainApp({ user, onLogout }) {
           <div className="map-grid-lines" />
           <div className="map-pulse-ring" />
           <div className="map-pulse-ring2" />
-          <div className="map-pin" />
+          <div className="map-pin" style={{ background: isInZone ? "var(--orange)" : "var(--red)" }} />
           <div className="map-badge">📍 {EMPLOYEE.site}</div>
           <div className="map-coords">22.3193°N 114.1694°E</div>
-          <div className="inside-badge">✓ 範圍內</div>
+          <div className="inside-badge" style={{ background: isInZone ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)", borderColor: isInZone ? "var(--green)" : "var(--red)", color: isInZone ? "var(--green)" : "var(--red)" }}>
+            {isInZone ? "✓ 範圍內" : "✗ 範圍外"}
+          </div>
         </div>
+
+        {/* GPS zone warning */}
+        {checkedIn && !checkedOut && !isInZone && gpsWatching && (
+          <div style={{ background: "rgba(239,68,68,0.1)", border: "1.5px solid rgba(239,68,68,0.3)", borderRadius: 14, padding: "12px 16px", marginBottom: 14, display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--red)" }}>已離開工地範圍！</div>
+              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>系統將自動記錄簽退時間</div>
+            </div>
+          </div>
+        )}
 
         <div className="info-card" style={{ marginBottom: 14 }}>
           <div className="info-row">
             <span className="info-key">定位狀態</span>
-            <span className="pill green"><span className="pill-dot" />已定位</span>
+            <span className={`pill ${gpsWatching ? "green" : "orange"}`}>
+              <span className="pill-dot" />{gpsWatching ? "GPS 監測中" : "模擬定位"}
+            </span>
           </div>
           <div className="info-row">
-            <span className="info-key">距離工地</span>
-            <span className="info-val green">48 米（範圍內）</span>
+            <span className="info-key">工地範圍</span>
+            <span className={`info-val ${isInZone ? "green" : "red"}`}>
+              {isInZone ? "✅ 範圍內（150米）" : "❌ 已離開範圍"}
+            </span>
           </div>
           <div className="info-row">
             <span className="info-key">今日簽到</span>
@@ -1209,7 +1285,19 @@ function MainApp({ user, onLogout }) {
             <span className="info-key">今日簽退</span>
             <span className={`info-val ${checkedOut ? "green" : "muted"}`}>{checkedOut ? checkOutTime : "–"}</span>
           </div>
+          <div className="info-row" style={{ borderBottom: "none" }}>
+            <span className="info-key">🕖 自動簽退時間</span>
+            <span className="info-val" style={{ color: "var(--blue)" }}>{autoCheckoutTime}</span>
+          </div>
         </div>
+
+        {/* Auto-checkout notice */}
+        {checkedIn && !checkedOut && (
+          <div style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)", borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "var(--muted)", display: "flex", gap: 8 }}>
+            <span>💡</span>
+            <span>App 開住時，離開工地 150 米範圍會自動簽退。如 App 關閉，系統將於 {autoCheckoutTime} 自動記錄簽退。</span>
+          </div>
+        )}
 
         {!checkedIn ? (
           <button className="big-btn primary" onClick={handleCheckIn}>
@@ -1230,7 +1318,8 @@ function MainApp({ user, onLogout }) {
           <div className="info-card" style={{ textAlign: "center", background: "rgba(34,197,94,0.06)", borderColor: "rgba(34,197,94,0.2)" }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--green)", marginBottom: 4 }}>今日考勤完成</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>簽到 {checkInTime} · 簽退 {checkOutTime}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>簽到 {checkInTime}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>簽退 {checkOutTime}</div>
           </div>
         )}
       </>
