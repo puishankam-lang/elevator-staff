@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+
 /* ─────────────────────────────────────────────
    DESIGN: Industrial Safety Orange + Near-Black
    Ultra-minimal, oversized tap targets, icon-first
@@ -804,7 +805,7 @@ function LoginScreen({ onLogin, error, setError }) {
       {/* Logo */}
       <div style={{ marginBottom: 40, textAlign: "center" }}>
         <div style={{ width: 72, height: 72, background: "linear-gradient(135deg, var(--orange), var(--orange-d))", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 14px", boxShadow: "0 8px 32px rgba(255,107,26,0.35)" }}>🏗️</div>
-        <div style={{ fontFamily: "var(--font)", fontWeight: 900, fontSize: 22, color: "var(--text)", marginBottom: 4 }}>升力電梯工程</div>
+        <div style={{ fontFamily: "var(--font)", fontWeight: 900, fontSize: 22, color: "var(--text)", marginBottom: 4 }}>電梯工程</div>
         <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>員工工作平台</div>
       </div>
 
@@ -1326,16 +1327,27 @@ function MainApp({ user, onLogout }) {
 
   const SalaryScreen = () => {
     const cur = SALARY_HISTORY[salaryMonth];
-    const deduct = salaryMonth === 0 ? 0 : 0;
-    const net = cur.amount - deduct;
+    const grossSalary = cur.days * EMPLOYEE.rate;
+
+    // MPF calculation (Hong Kong)
+    // Employee contribution: 5% of relevant income, capped at HK$1,500/month
+    // Relevant income: monthly equivalent (days * rate), capped at HK$30,000
+    // Exempt if monthly equivalent < HK$7,100
+    const monthlyEquiv = EMPLOYEE.rate * 26; // approximate monthly based on daily rate
+    const isExempt = monthlyEquiv < 7100;
+    const relevantIncome = Math.min(monthlyEquiv, 30000);
+    const empMpfMonthly = isExempt ? 0 : Math.min(relevantIncome * 0.05, 1500);
+    const empMpfAmount = Math.round(empMpfMonthly); // employee's own MPF contribution
+    const erMpfAmount = empMpfAmount; // employer contributes same amount
+    const netTakeHome = cur.amount - empMpfAmount;
 
     return (
       <>
         <div className="salary-hero">
           <div className="salary-month">{cur.month} 薪酬</div>
-          <div className="salary-amount">HK${net.toLocaleString()}</div>
+          <div className="salary-amount">HK${netTakeHome.toLocaleString()}</div>
           <div className="salary-sub">
-            {cur.status === "paid" ? "✅ 已發放" : "⏳ 待發放（月底結算）"}
+            {cur.status === "paid" ? "✅ 已發放（扣除 MPF 後到手）" : "⏳ 待發放（月底結算）"}
           </div>
         </div>
 
@@ -1369,45 +1381,75 @@ function MainApp({ user, onLogout }) {
           <div className="salary-divider" />
           <div className="salary-row-inner">
             <span className="salary-row-label">🧮 基本薪酬</span>
-            <span className="salary-row-val">HK${(cur.days * EMPLOYEE.rate).toLocaleString()}</span>
+            <span className="salary-row-val">HK${cur.amount.toLocaleString()}</span>
           </div>
-          {deduct > 0 && (
-            <>
-              <div className="salary-divider" />
-              <div className="salary-row-inner">
-                <span className="salary-row-label">⚠️ 扣薪</span>
-                <span className="salary-row-val deduct">-HK${deduct.toLocaleString()}</span>
-              </div>
-            </>
-          )}
+          <div className="salary-divider" />
+          <div className="salary-row-inner">
+            <span className="salary-row-label">🏦 MPF 員工供款</span>
+            <span className="salary-row-val deduct">
+              {isExempt ? "豁免（月薪低於$7,100）" : `-HK$${empMpfAmount.toLocaleString()}`}
+            </span>
+          </div>
         </div>
 
         <div className="salary-row" style={{ background: "rgba(34,197,94,0.05)", borderColor: "rgba(34,197,94,0.2)" }}>
           <div className="salary-row-inner">
-            <span className="salary-row-label" style={{ fontSize: 16 }}>💰 實發薪酬</span>
-            <span className="salary-row-val" style={{ fontSize: 22 }}>HK${net.toLocaleString()}</span>
+            <span className="salary-row-label" style={{ fontSize: 16 }}>💰 實際到手</span>
+            <span className="salary-row-val" style={{ fontSize: 22 }}>HK${netTakeHome.toLocaleString()}</span>
+          </div>
+        </div>
+
+        {/* MPF Info Box */}
+        <div style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)", borderRadius: 14, padding: "14px 16px", marginTop: 12 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "var(--blue)", marginBottom: 10 }}>🏦 MPF 供款詳情</div>
+          <div className="info-row" style={{ padding: "6px 0" }}>
+            <span className="info-key">你的供款（員工）</span>
+            <span style={{ fontFamily: "var(--font)", fontWeight: 700, color: "var(--red)", fontSize: 14 }}>
+              {isExempt ? "豁免" : `-HK$${empMpfAmount.toLocaleString()}/月`}
+            </span>
+          </div>
+          <div className="info-row" style={{ padding: "6px 0" }}>
+            <span className="info-key">僱主供款</span>
+            <span style={{ fontFamily: "var(--font)", fontWeight: 700, color: "var(--green)", fontSize: 14 }}>
+              {isExempt ? "豁免" : `+HK$${erMpfAmount.toLocaleString()}/月`}
+            </span>
+          </div>
+          <div className="info-row" style={{ padding: "6px 0", borderBottom: "none" }}>
+            <span className="info-key">MPF 戶口每月增加</span>
+            <span style={{ fontFamily: "var(--font)", fontWeight: 700, color: "var(--blue)", fontSize: 14 }}>
+              {isExempt ? "豁免" : `HK$${(empMpfAmount + erMpfAmount).toLocaleString()}/月`}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 8, lineHeight: 1.6 }}>
+            💡 MPF 係你的退休儲蓄，僱主供款部分係額外福利，唔係從你薪酬扣除。
           </div>
         </div>
 
         <div className="divider" />
         <div className="section-label">發薪記錄</div>
-        {SALARY_HISTORY.map((s, i) => (
-          <div key={i} className="info-card" style={{ marginBottom: 10 }}>
-            <div className="info-row" style={{ padding: "8px 0" }}>
-              <div>
-                <div className="info-val" style={{ fontSize: 14, textAlign: "left" }}>{s.month}</div>
-                <div className="info-key" style={{ marginTop: 2 }}>{s.days} 天 × HK${EMPLOYEE.rate}</div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div className="info-val green" style={{ marginBottom: 4 }}>HK${s.amount.toLocaleString()}</div>
-                <span className={`pill ${s.status === "paid" ? "green" : "orange"}`} style={{ fontSize: 11 }}>
-                  <span className="pill-dot" />
-                  {s.status === "paid" ? "已發放" : "待發放"}
-                </span>
+        {SALARY_HISTORY.map((s, i) => {
+          const mpf = isExempt ? 0 : empMpfAmount;
+          const takeHome = s.amount - mpf;
+          return (
+            <div key={i} className="info-card" style={{ marginBottom: 10 }}>
+              <div className="info-row" style={{ padding: "8px 0" }}>
+                <div>
+                  <div className="info-val" style={{ fontSize: 14, textAlign: "left" }}>{s.month}</div>
+                  <div className="info-key" style={{ marginTop: 2 }}>
+                    {s.days} 天 × HK${EMPLOYEE.rate} — MPF HK${mpf}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div className="info-val green" style={{ marginBottom: 4 }}>HK${takeHome.toLocaleString()}</div>
+                  <span className={`pill ${s.status === "paid" ? "green" : "orange"}`} style={{ fontSize: 11 }}>
+                    <span className="pill-dot" />
+                    {s.status === "paid" ? "已發放" : "待發放"}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </>
     );
   };
@@ -1448,7 +1490,7 @@ function MainApp({ user, onLogout }) {
               <div className="avatar-lg" style={{ background: EMPLOYEE.color }}>{EMPLOYEE.name[0]}</div>
               <div className="greet-text">
                 <div className="greet-name">早晨，{EMPLOYEE.name} 👋</div>
-                <div className="greet-sub">{EMPLOYEE.role} · {EMPLOYEE.site}</div>
+                <div className="greet-sub">{EMPLOYEE.role} · 電梯工程</div>
               </div>
               <div className="greet-badge">7月</div>
             </div>
