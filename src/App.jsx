@@ -1031,7 +1031,7 @@ function MainApp({ user, onLogout }) {
         <div className="today-label">今日工地</div>
         <div className="today-site">{EMPLOYEE.site}</div>
         <div className="today-chips">
-          <span className="today-chip">📅 2025年7月15日</span>
+          <span className="today-chip">📅 {new Date().toLocaleDateString("zh-HK", { year: "numeric", month: "long", day: "numeric" })}</span>
           <span className="today-chip">☀️ 晴，31°C</span>
         </div>
       </div>
@@ -1327,7 +1327,13 @@ function MainApp({ user, onLogout }) {
   };
 
   const ProgressScreen = () => {
-    const PCT_OPTIONS = [5,10,15,20,25,30,40,50,60,70,80,100];
+    const [stageDesc, setStageDesc] = useState("");
+
+    const selectStage = (p, desc) => {
+      setSelectedPct(p);
+      setStageDesc(desc);
+      setNote(desc);
+    };
 
     const handleAddPhoto = () => {
       if (photos.length >= 5) return;
@@ -1355,6 +1361,40 @@ function MainApp({ user, onLogout }) {
         </div>
       );
     }
+
+    const STAGE_GROUPS = [
+      {
+        label: "🆕 新裝",
+        color: "var(--orange)",
+        stages: [
+          { p: 20, desc: "已進場開工及提交秤線表" },
+          { p: 50, desc: "已完成外門框、門頭、地砵，已完成主副路軌安裝及調校" },
+          { p: 80, desc: "已完成機房及井道全面安裝，已拆棚交較車行慢車" },
+          { p: 95, desc: "已完成 EMSD 驗機，已完成保養部驗收手尾" },
+          { p: 100, desc: "已完成客戶交機時安裝手尾" },
+        ]
+      },
+      {
+        label: "🔄 舊裝翻新",
+        color: "var(--blue)",
+        stages: [
+          { p: 30, desc: "已完成拆除機房物料，已完成拆除井道物料（不包括外門、外門框及外門地砵），已提供升降機/自動梯工作日誌，已提供廢料回收紙回條" },
+          { p: 65, desc: "已提交秤線表，已完成機房及井道全面安裝，已完成外門框、門頭、地砵、外門，已完成主副路軌安裝及調校，已交較車行快車，已提供升降機/自動梯工作日誌，已提供廢料回收紙回條" },
+          { p: 100, desc: "已完成 EMSD 驗機，已完成保養部驗收手尾，已完成客戶交機時安裝手尾，EMSD 發出准用証六個月內" },
+        ]
+      },
+      {
+        label: "🏥 特殊工程（多期）",
+        color: "var(--purple, #a78bfa)",
+        stages: [
+          { p: 20, desc: "進場開工，提交秤線表，完成初期外門框、門頭、地砵，完成初期主副路軌安裝及調校" },
+          { p: 45, desc: "完成機房及井道全面安裝，協助快車慢車調試，完成 EMSD 驗機" },
+          { p: 70, desc: "完成第二期安裝及升機，協助快車慢車調試，完成 EMSD 驗機" },
+          { p: 95, desc: "完成第三期安裝及升機，協助快車慢車調試，完成 EMSD 驗機" },
+          { p: 100, desc: "完成拆卸及清理" },
+        ]
+      },
+    ];
 
     return (
       <>
@@ -1384,25 +1424,45 @@ function MainApp({ user, onLogout }) {
           </div>
         )}
 
-        <div className="section-label">今日完成進度</div>
-        <div className="pct-grid">
-          {PCT_OPTIONS.map(p => (
-            <div key={p}
-              className={`pct-btn ${selectedPct === p ? "selected" : ""}`}
-              onClick={() => setSelectedPct(p)}>
-              {p}%
-              <div className="pct-sub">{p < 20 ? "初期" : p < 50 ? "中期" : p < 80 ? "後期" : "完工"}</div>
-            </div>
-          ))}
-        </div>
+        <div className="section-label">選擇完工節點</div>
+        {STAGE_GROUPS.map((grp, gi) => (
+          <div key={gi} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: grp.color, letterSpacing: 1, marginBottom: 8 }}>{grp.label}</div>
+            {grp.stages.map(({ p, desc }) => (
+              <div key={p}
+                onClick={() => selectStage(p, desc)}
+                style={{
+                  display: "flex", alignItems: "flex-start", gap: 12,
+                  padding: "12px 14px", marginBottom: 8, borderRadius: 12,
+                  background: selectedPct === p ? "rgba(255,107,26,0.08)" : "var(--surface)",
+                  border: `1.5px solid ${selectedPct === p ? "var(--orange)" : "var(--border)"}`,
+                  cursor: "pointer", transition: "all 0.15s",
+                }}>
+                <div style={{
+                  fontFamily: "var(--font)", fontSize: 20, fontWeight: 900,
+                  color: selectedPct === p ? "var(--orange)" : "var(--muted)",
+                  minWidth: 44, flexShrink: 0, lineHeight: 1.4
+                }}>{p}%</div>
+                <div style={{ fontSize: 12, color: selectedPct === p ? "var(--text)" : "var(--muted)", lineHeight: 1.65 }}>{desc}</div>
+              </div>
+            ))}
+          </div>
+        ))}
 
-        <div className="section-label">現場備注（選填）</div>
-        <textarea
-          className="note-input"
-          placeholder="例如：完成機房佈線，明日繼續主軌道安裝..."
-          value={note}
-          onChange={e => setNote(e.target.value)}
-        />
+        {selectedPct && (
+          <>
+            <div className="section-label">備注（可修改）</div>
+            <textarea
+              className="note-input"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="節點內容已自動填入，可補充現場情況..."
+            />
+            {note === stageDesc && (
+              <div style={{ fontSize: 11, color: "var(--green)", marginTop: -10, marginBottom: 12 }}>✅ 已自動帶入節點內容</div>
+            )}
+          </>
+        )}
 
         <button
           className={`big-btn ${selectedPct ? "primary" : "disabled"}`}
@@ -1448,7 +1508,7 @@ function MainApp({ user, onLogout }) {
       <div className="section-label">最近出勤記錄</div>
       <div className="info-card">
         {[
-          { date: "7月15日（今日）", in: checkedIn ? checkInTime : "–", out: checkedOut ? checkOutTime : "–", status: checkedIn ? "present" : "pending" },
+          { date: `${new Date().toLocaleDateString("zh-HK", { month: "long", day: "numeric" })}（今日）`, in: checkedIn ? checkInTime : "–", out: checkedOut ? checkOutTime : "–", status: checkedIn ? "present" : "pending" },
           { date: "7月14日（昨日）", in: "07:58", out: "17:45", status: "present" },
           { date: "7月13日（週日）", in: "–", out: "–", status: "absent" },
           { date: "7月12日（週六）", in: "08:10", out: "17:30", status: "present" },
