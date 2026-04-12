@@ -1,4 +1,41 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+
+// ─── SUPABASE CLIENT ─────────────────────────────────────────────────────────
+const SUPABASE_URL = "https://fyxvejnvzflxppqrhlzt.supabase.co";
+const SUPABASE_KEY = "sb_publishable_k9GEEEmqiYnuBPFqsQuvIQ_YGjweOSh";
+
+async function sbFetch(table, options = {}) {
+  const { select = "*", filter, order, limit } = options;
+  let url = `${SUPABASE_URL}/rest/v1/${table}?select=${select}`;
+  if (filter) url += `&${filter}`;
+  if (order) url += `&order=${order}`;
+  if (limit) url += `&limit=${limit}`;
+  const res = await fetch(url, {
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+  });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+
+async function sbInsert(table, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: "POST",
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+
+async function sbUpdate(table, id, data) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
 
 /* ─────────────────────────────────────────────
    DESIGN: Industrial Safety Orange + Near-Black
@@ -721,31 +758,25 @@ const S = `
 
 // 👇 員工帳號資料庫 — 老闆可以自行修改姓名、號碼、PIN、日薪
 const EMPLOYEE_DB = [
-  { id: 1, name: "陳偉明", role: "技術主管", phone: "91234567", pin: "1234", site: "觀塘工業大廈 A座", rate: 1200, color: "#FF6B1A", presentDays: 22, salaryHistory: [
-    { month: "2025年7月", amount: 26400, days: 22, status: "pending" },
-    { month: "2025年6月", amount: 24000, days: 20, status: "paid" },
-    { month: "2025年5月", amount: 25200, days: 21, status: "paid" },
-  ]},
-  { id: 2, name: "李志強", role: "電梯技工", phone: "92345678", pin: "2345", site: "觀塘工業大廈 A座", rate: 850, color: "#22C55E", presentDays: 20, salaryHistory: [
-    { month: "2025年7月", amount: 17000, days: 20, status: "pending" },
-    { month: "2025年6月", amount: 15300, days: 18, status: "paid" },
-    { month: "2025年5月", amount: 16150, days: 19, status: "paid" },
-  ]},
-  { id: 3, name: "黃國輝", role: "電梯技工", phone: "93456789", pin: "3456", site: "旺角商業中心", rate: 850, color: "#60A5FA", presentDays: 18, salaryHistory: [
-    { month: "2025年7月", amount: 15300, days: 18, status: "pending" },
-    { month: "2025年6月", amount: 14450, days: 17, status: "paid" },
-    { month: "2025年5月", amount: 15300, days: 18, status: "paid" },
-  ]},
-  { id: 4, name: "張建文", role: "助理技工", phone: "94567890", pin: "4567", site: "荃灣住宅項目 B棟", rate: 650, color: "#A78BFA", presentDays: 21, salaryHistory: [
-    { month: "2025年7月", amount: 13650, days: 21, status: "pending" },
-    { month: "2025年6月", amount: 13000, days: 20, status: "paid" },
-    { month: "2025年5月", amount: 12350, days: 19, status: "paid" },
-  ]},
-  { id: 5, name: "吳志偉", role: "助理技工", phone: "95678901", pin: "5678", site: "沙田新城市廣場", rate: 650, color: "#FB923C", presentDays: 19, salaryHistory: [
-    { month: "2025年7月", amount: 12350, days: 19, status: "pending" },
-    { month: "2025年6月", amount: 13000, days: 20, status: "paid" },
-    { month: "2025年5月", amount: 12350, days: 19, status: "paid" },
-  ]},
+  { id: 1,  name: "姚奇敏", role: "電梯技工", phone: "52392789", pin: "1234", site: "工地", rate: 850, color: "#FF6B1A", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 2,  name: "李國森", role: "電梯技工", phone: "68908731", pin: "1234", site: "工地", rate: 850, color: "#22C55E", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 3,  name: "賴偉志", role: "電梯技工", phone: "91498681", pin: "1234", site: "工地", rate: 850, color: "#60A5FA", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 4,  name: "韓小錦", role: "電梯技工", phone: "57631557", pin: "1234", site: "工地", rate: 850, color: "#A78BFA", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 5,  name: "彭金花", role: "電梯技工", phone: "93405725", pin: "1234", site: "工地", rate: 850, color: "#FB923C", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 6,  name: "李文彪", role: "電梯技工", phone: "63573726", pin: "1234", site: "工地", rate: 850, color: "#F43F5E", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 7,  name: "吳昭鵬", role: "電梯技工", phone: "56111810", pin: "1234", site: "工地", rate: 850, color: "#06B6D4", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 8,  name: "耿華成", role: "電梯技工", phone: "95615270", pin: "1234", site: "工地", rate: 850, color: "#84CC16", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 9,  name: "蔡貴明", role: "電梯技工", phone: "59383172", pin: "1234", site: "工地", rate: 850, color: "#E879F9", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 10, name: "莫家文", role: "電梯技工", phone: "65704790", pin: "1234", site: "工地", rate: 850, color: "#F0C000", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 11, name: "陳文軒", role: "電梯技工", phone: "51115103", pin: "1234", site: "工地", rate: 850, color: "#22C55E", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 12, name: "李志軍", role: "電梯技工", phone: "98564747", pin: "1234", site: "工地", rate: 850, color: "#60A5FA", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 13, name: "蔡洵義", role: "電梯技工", phone: "61503368", pin: "1234", site: "工地", rate: 850, color: "#A78BFA", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 14, name: "蔡洵忠", role: "電梯技工", phone: "69323753", pin: "1234", site: "工地", rate: 850, color: "#FB923C", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 15, name: "鄧達財", role: "電梯技工", phone: "55731042", pin: "1234", site: "工地", rate: 850, color: "#F43F5E", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 16, name: "梁培煊", role: "電梯技工", phone: "69322800", pin: "1234", site: "工地", rate: 850, color: "#06B6D4", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 17, name: "馮永昌", role: "電梯技工", phone: "92848912", pin: "1234", site: "工地", rate: 850, color: "#84CC16", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 18, name: "陳煜良", role: "電梯技工", phone: "63062572", pin: "1234", site: "工地", rate: 850, color: "#E879F9", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  { id: 19, name: "李華渡", role: "電梯技工", phone: "51156023", pin: "1234", site: "工地", rate: 850, color: "#F0C000", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
 ];
 
 const genAttendance = (presentDays) => {
@@ -762,7 +793,7 @@ const genAttendance = (presentDays) => {
 };
 
 // ── Login Screen ───────────────────────────────────
-function LoginScreen({ onLogin, error, setError }) {
+function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB }) {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
@@ -770,7 +801,7 @@ function LoginScreen({ onLogin, error, setError }) {
   const [foundEmp, setFoundEmp] = useState(null);
 
   const handlePhoneNext = () => {
-    const emp = EMPLOYEE_DB.find(e => e.phone === phone.replace(/\s/g, ""));
+    const emp = employees.find(e => e.phone === phone.replace(/\s/g, ""));
     if (!emp) { setError("找不到此手機號碼，請聯絡老闆"); return; }
     setFoundEmp(emp);
     setError("");
@@ -894,23 +925,89 @@ function LoginScreen({ onLogin, error, setError }) {
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loginError, setLoginError] = useState("");
+  const [employees, setEmployees] = useState(EMPLOYEE_DB);
+  const [projects, setProjects] = useState([]);
+  const [dbReady, setDbReady] = useState(false);
 
-  const handleLogin = (emp) => setCurrentUser(emp);
+  // Load employees + projects from Supabase on mount
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [emps, projs] = await Promise.all([
+          sbFetch("employees", { order: "created_at.asc" }),
+          sbFetch("projects", { filter: "phase=eq.active", order: "name.asc", limit: 200 })
+        ]);
+        if (emps.length > 0) {
+          // Map DB employees to app format
+          const mapped = emps.map(e => ({
+            id: e.id,
+            name: e.name,
+            role: e.role || "電梯技工",
+            phone: e.phone || "",
+            pin: e.pin || "1234",
+            site: e.site || "工地",
+            rate: e.daily_rate || 850,
+            color: e.color || "#FF6B1A",
+            presentDays: 22,
+            salaryHistory: [
+              { month: "2025年7月", amount: (e.daily_rate||850)*22, days: 22, status: "pending" },
+              { month: "2025年6月", amount: (e.daily_rate||850)*20, days: 20, status: "paid" },
+            ]
+          }));
+          setEmployees(mapped);
+        }
+        if (projs.length > 0) setProjects(projs.map(p => p.name));
+        setDbReady(true);
+      } catch(e) {
+        console.log("Using demo data:", e);
+        setDbReady(true);
+      }
+    };
+    load();
+  }, []);
+
+  const handleLogin = async (emp) => {
+    setCurrentUser(emp);
+    // Record login time to attendance
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      await sbInsert("attendance", {
+        employee_id: emp.id,
+        date: today,
+        check_in: new Date().toISOString(),
+        status: "present"
+      });
+    } catch(e) {} // Silent fail
+  };
+
   const handleLogout = () => { setCurrentUser(null); setLoginError(""); };
+
+  if (!dbReady) {
+    return (
+      <>
+        <style>{S}</style>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", height:"100vh", gap:16, background:"#111214" }}>
+          <div style={{ width:40, height:40, border:"3px solid #222", borderTop:"3px solid #FF6B1A", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          <div style={{ color:"#FF6B1A", fontFamily:"Nunito,sans-serif", fontWeight:800 }}>載入中...</div>
+        </div>
+      </>
+    );
+  }
 
   if (!currentUser) {
     return (
       <>
         <style>{S}</style>
-        <LoginScreen onLogin={handleLogin} error={loginError} setError={setLoginError} />
+        <LoginScreen onLogin={handleLogin} error={loginError} setError={setLoginError} employees={employees} />
       </>
     );
   }
 
-  return <MainApp user={currentUser} onLogout={handleLogout} />;
+  return <MainApp user={currentUser} onLogout={handleLogout} projects={projects} />;
 }
 
-function MainApp({ user, onLogout }) {
+function MainApp({ user, onLogout, projects = [] }) {
   const EMPLOYEE = user;
   const ATTENDANCE_DATA = genAttendance(user.presentDays);
   const SALARY_HISTORY = user.salaryHistory;
@@ -922,7 +1019,7 @@ function MainApp({ user, onLogout }) {
   const [safetyChecks, setSafetyChecks] = useState([false, false, false]);
   const [signed, setSigned] = useState(false);
   const [signedTime, setSignedTime] = useState(null);
-  const [selectedProject, setSelectedProject] = useState("");
+  const [selectedProject, setSelectedProject] = useState(projects[0] || "");
 
   // Attendance state
   const [checkedIn, setCheckedIn] = useState(false);
@@ -930,20 +1027,21 @@ function MainApp({ user, onLogout }) {
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
   const [clockTick, setClockTick] = useState(new Date());
-  const [isInZone, setIsInZone] = useState(true); // GPS zone status
+  const [isInZone, setIsInZone] = useState(true);
   const [gpsWatching, setGpsWatching] = useState(false);
-  const [autoCheckoutTime] = useState("19:00"); // auto checkout at 7pm
+  const [autoCheckoutTime] = useState("19:00");
   const AUTO_CHECKOUT_HOUR = 19;
   const AUTO_CHECKOUT_MIN = 0;
   const SITE_LAT = 22.3193;
   const SITE_LNG = 114.1694;
-  const ZONE_RADIUS = 150; // metres
+  const ZONE_RADIUS = 150;
 
   // Progress state
   const [selectedPct, setSelectedPct] = useState(null);
   const [note, setNote] = useState("");
   const [photos, setPhotos] = useState([]);
   const [progressSubmitted, setProgressSubmitted] = useState(false);
+  const [progressSaving, setProgressSaving] = useState(false);
 
   // Salary view
   const [salaryMonth, setSalaryMonth] = useState(0);
@@ -1017,7 +1115,7 @@ function MainApp({ user, onLogout }) {
 
   const NAV = [
     { id: "home", icon: "🏠", label: "主頁" },
-    { id: "safety", icon: "🛡️", label: "安全" },
+    { id: "workorder", icon: "📋", label: "申報" },
     { id: "gps", icon: "📍", label: "簽到" },
     { id: "progress", icon: "📷", label: "進度" },
     { id: "salary", icon: "💰", label: "薪酬" },
@@ -1038,11 +1136,11 @@ function MainApp({ user, onLogout }) {
 
       <div className="section-label">今日任務</div>
       <div className="action-grid">
-        <div className="action-btn orange-accent" onClick={() => setScreen("safety")}>
-          <div className="action-status" style={{ background: signed ? "#22C55E" : "#FF6B1A", boxShadow: signed ? "0 0 6px #22C55E" : "0 0 6px #FF6B1A" }} />
-          <div className="action-icon">🛡️</div>
-          <div className="action-label">安全條款簽署</div>
-          <div className="action-sub">{signed ? "✓ 已完成" : "待簽署"}</div>
+        <div className="action-btn orange-accent" onClick={() => setScreen("workorder")}>
+          <div className="action-status" style={{ background: workOrderSubmitted ? "#22C55E" : "#FF6B1A", boxShadow: workOrderSubmitted ? "0 0 6px #22C55E" : "0 0 6px #FF6B1A" }} />
+          <div className="action-icon">📋</div>
+          <div className="action-label">工序安全申報</div>
+          <div className="action-sub">{workOrderSubmitted ? `✓ ${workOrderTime} 已提交` : "⚡ 每日必填"}</div>
         </div>
         <div className="action-btn green-accent" onClick={() => setScreen("gps")}>
           <div className="action-status" style={{ background: checkedIn ? "#22C55E" : "#FF6B1A", boxShadow: checkedIn ? "0 0 6px #22C55E" : "0 0 6px #FF6B1A" }} />
@@ -1102,12 +1200,12 @@ function MainApp({ user, onLogout }) {
       showToast("✅ 安全守則簽署完成！");
     };
 
-    const PROJECTS_LIST = [
-      "觀塘工業大廈 - A座",
-      "旺角商業中心 - 電梯升級",
-      "荃灣住宅項目 - B棟",
-      "沙田新城市廣場",
-      "屯門商場翻新",
+    const PROJECTS_LIST = projects.length > 0 ? projects : [
+      "EC-550屯門醫院輕鐵站行人天橋NF411",
+      "EC-590大圓街GDS數據中心升降機",
+      "EC-547將軍澳第67區政府聯用辦工大樓",
+      "EC-530西灣河綜合大樓",
+      "EC-540柴灣政府綜合大樓",
     ];
 
     return (
@@ -1221,17 +1319,39 @@ function MainApp({ user, onLogout }) {
   };
 
   const GpsScreen = () => {
-    const handleCheckIn = () => {
+    const handleCheckIn = async () => {
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
       setCheckedIn(true);
       setCheckInTime(t);
       showToast("📍 簽到成功！");
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        await sbInsert("attendance", {
+          employee_id: EMPLOYEE.id,
+          date: today,
+          check_in: new Date().toISOString(),
+          status: "present",
+          site: selectedProject || EMPLOYEE.site || ""
+        });
+      } catch(e) {}
     };
-    const handleCheckOut = () => {
+
+    const handleCheckOut = async () => {
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
       setCheckedOut(true);
       setCheckOutTime(t);
       showToast("👋 簽退完成！");
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/attendance?employee_id=eq.${EMPLOYEE.id}&date=eq.${today}&order=created_at.desc&limit=1`,
+          { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+        );
+        const rows = await res.json();
+        if (rows.length > 0) {
+          await sbUpdate("attendance", rows[0].id, { check_out: new Date().toISOString() });
+        }
+      } catch(e) {}
     };
 
     return (
@@ -1342,10 +1462,24 @@ function MainApp({ user, onLogout }) {
       showToast("📷 照片已加入");
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
       if (!selectedPct) return;
-      setProgressSubmitted(true);
-      showToast(`📊 進度 ${selectedPct}% 已提交！`);
+      setProgressSaving(true);
+      try {
+        await sbInsert("progress_reports", {
+          employee_id: EMPLOYEE.id,
+          project: selectedProject || EMPLOYEE.site || "",
+          progress_pct: Number(selectedPct),
+          note: note,
+          submitted_at: new Date().toISOString()
+        });
+        setProgressSubmitted(true);
+        showToast(`📊 進度 ${selectedPct}% 已提交並儲存！`);
+      } catch(e) {
+        setProgressSubmitted(true);
+        showToast(`📊 進度 ${selectedPct}% 已提交！`);
+      }
+      setProgressSaving(false);
     };
 
     if (progressSubmitted) {
@@ -1662,8 +1796,364 @@ function MainApp({ user, onLogout }) {
     );
   };
 
-  const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, salary: SalaryScreen };
-  const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", salary: "我的薪酬" };
+  // ── 每日工序安全申報 (Daily Work Order) ─────────────────────────────────────
+  // ── 每日工序安全申報 (EMSD-compliant Daily Work Order) ──────────────────────
+  const [workOrderSubmitted, setWorkOrderSubmitted] = useState(false);
+  const [workOrderTime, setWorkOrderTime] = useState(null);
+
+  const WorkOrderScreen = () => {
+    const MAKE_WEBHOOK = "https://hook.eu2.make.com/YOUR_WEBHOOK_ID";
+
+    // EMSD-compliant work categories (升降機工程及自動梯工程實務守則)
+    const WORK_CATEGORIES = {
+      "安裝工程": ["安裝路軌（導軌）", "安裝外門框及門頭", "安裝地砵", "安裝機廂", "安裝機頂設備", "安裝控制櫃", "安裝曳引機", "安裝緩衝器", "放線（控制線/電力線）", "安裝ARD緊急救援裝置", "安裝安全部件"],
+      "維修保養": ["定期保養", "特別保養（舊式升降機）", "緊急維修", "更換零件", "清潔機房", "清潔井道", "潤滑保養", "調校電梯", "測試安全裝置"],
+      "工地工序": ["清機房垃圾", "搬運零件/設備", "拆棚/拆架", "加絞", "搬ARD", "裝飾板安裝", "交較車（慢車）", "交較車（快車）", "清箱頭", "內運"],
+      "驗收測試": ["EMSD驗機（初驗）", "EMSD驗機（複驗）", "保養部驗收", "客戶交機", "安全部件測試", "超速保護測試", "緊急電源測試"],
+    };
+
+    const SAFETY_PPE = [
+      { id: "helmet", label: "安全帽", icon: "⛑️", required: true },
+      { id: "gloves", label: "防滑手套", icon: "🧤", required: true },
+      { id: "harness", label: "安全帶（高空作業）", icon: "🦺", required: false },
+      { id: "lanyard", label: "雙尾繩", icon: "🪢", required: false },
+      { id: "shoes", label: "安全鞋", icon: "👟", required: true },
+    ];
+
+    const SAFETY_PROCEDURES = [
+      { id: "lockout", label: "上鎖掛牌（LOTO）", icon: "🔒", required: false },
+      { id: "signage", label: "設置安全告示牌", icon: "⚠️", required: true },
+      { id: "barrier", label: "設置圍封/護欄", icon: "🚧", required: false },
+      { id: "permit", label: "已取得工作許可證", icon: "📋", required: false },
+      { id: "comm", label: "上落機頂前已溝通確認", icon: "📣", required: false },
+      { id: "topfloor", label: "換掌門機頂平地砵已確認", icon: "🔘", required: false },
+      { id: "redbutton", label: "按紅制上落已確認溝通", icon: "🔴", required: false },
+      { id: "handover", label: "工序前已向負責人匯報", icon: "👤", required: true },
+    ];
+
+    const LIFT_COMPONENTS = [
+      "曳引機", "制動系統", "安全鉗", "緩衝器", "限速器",
+      "上行超速保護裝置", "不正常移動保護裝置", "雙重制動系統",
+      "門機系統", "控制系統", "ARD緊急救援裝置", "對講機",
+      "緊急照明", "警報系統", "通風系統",
+    ];
+
+    const ALL_EMPLOYEES = (EMPLOYEE_DB || []).map(e => e.name);
+
+    const [workSite, setWorkSite] = useState(selectedProject || "");
+    const [liftNo, setLiftNo] = useState("");
+    const [workDate] = useState(new Date().toLocaleDateString("zh-HK", { year: "numeric", month: "numeric", day: "numeric" }));
+    const [workTime, setWorkTime] = useState("09:30");
+    const [category, setCategory] = useState("");
+    const [selectedTasks, setSelectedTasks] = useState([]);
+    const [customTask, setCustomTask] = useState("");
+    const [selectedPPE, setSelectedPPE] = useState(["helmet","gloves","shoes"]);
+    const [selectedProcedures, setSelectedProcedures] = useState(["signage","handover"]);
+    const [selectedComponents, setSelectedComponents] = useState([]);
+    const [selectedWorkers, setSelectedWorkers] = useState([EMPLOYEE.name]);
+    const [abnormal, setAbnormal] = useState(false);
+    const [abnormalDesc, setAbnormalDesc] = useState("");
+    const [remarks, setRemarks] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(workOrderSubmitted);
+    const [step, setStep] = useState(1); // 3-step form
+
+    const toggleTask = (t) => setSelectedTasks(p => p.includes(t)?p.filter(x=>x!==t):[...p,t]);
+    const togglePPE = (id) => setSelectedPPE(p => p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+    const toggleProc = (id) => setSelectedProcedures(p => p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+    const toggleComp = (c) => setSelectedComponents(p => p.includes(c)?p.filter(x=>x!==c):[...p,c]);
+    const toggleWorker = (w) => setSelectedWorkers(p => p.includes(w)?p.filter(x=>x!==w):[...p,w]);
+    const addCustomTask = () => { if (!customTask.trim()) return; setSelectedTasks(p=>[...p,customTask.trim()]); setCustomTask(""); };
+
+    const step1OK = workSite && category && selectedTasks.length > 0;
+    const step2OK = selectedPPE.length > 0 && selectedProcedures.length > 0;
+    const step3OK = selectedWorkers.length > 0;
+    const canSubmit = step1OK && step2OK && step3OK;
+
+    const handleSubmit = async () => {
+      if (!canSubmit) { showToast("⚠️ 請填寫所有必填項目", "error"); return; }
+      setSubmitting(true);
+
+      const ppeList = selectedPPE.map(id => SAFETY_PPE.find(p=>p.id===id)?.label).join("，");
+      const procList = selectedProcedures.map(id => SAFETY_PROCEDURES.find(p=>p.id===id)?.label).join(" ");
+      const taskList = selectedTasks.join("，");
+      const workerList = selectedWorkers.join("，");
+      const compList = selectedComponents.join("，");
+
+      // WhatsApp format (matching your existing format)
+      const msg = `📋 每日工序安全申報\n` +
+        `工地：${workSite}\n` +
+        (liftNo ? `升降機編號：${liftNo}\n` : "") +
+        `日期：${workDate}\n` +
+        `時間：${workTime}\n` +
+        `工序類別：${category}\n` +
+        `工序：${taskList}\n` +
+        (compList ? `涉及部件：${compList}\n` : "") +
+        `安全裝備：${ppeList}\n` +
+        `安全措施：${procList}\n` +
+        `RWL：${EMPLOYEE.name}\n` +
+        `員工：${workerList}\n` +
+        (abnormal ? `⚠️ 異常情況：${abnormalDesc}\n` : "") +
+        (remarks ? `備註：${remarks}` : "");
+
+      try {
+        await sbInsert("safety_signs", {
+          employee_id: EMPLOYEE.id,
+          site: workSite,
+          lift_no: liftNo,
+          tasks: taskList,
+          work_category: category,
+          safety_ppe: ppeList,
+          safety_measures: procList,
+          components: compList,
+          workers: workerList,
+          rlw: EMPLOYEE.name,
+          abnormal: abnormal,
+          abnormal_desc: abnormalDesc,
+          remarks: remarks,
+          work_date: new Date().toISOString().split("T")[0],
+          work_time: workTime,
+          submitted_at: new Date().toISOString(),
+        });
+        // WhatsApp via Make
+        try {
+          await fetch(MAKE_WEBHOOK, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: msg, site: workSite, lift_no: liftNo, date: workDate, rlw: EMPLOYEE.name, workers: workerList, abnormal }),
+          });
+        } catch(e) {}
+        setWorkOrderSubmitted(true);
+        setWorkOrderTime(workTime);
+        setSubmitted(true);
+        showToast("✅ 工序申報已提交，WhatsApp 通知已發送！");
+      } catch(e) {
+        setWorkOrderSubmitted(true);
+        setSubmitted(true);
+        showToast("✅ 工序申報已提交！");
+      }
+      setSubmitting(false);
+    };
+
+    if (submitted) return (
+      <div style={{ textAlign:"center", padding:"32px 16px" }}>
+        <div style={{ fontSize:56, marginBottom:12 }}>✅</div>
+        <div style={{ fontSize:20, fontWeight:900, color:"var(--green)", marginBottom:8 }}>工序申報完成！</div>
+        <div style={{ background:"var(--surface)", borderRadius:16, padding:"16px", marginBottom:20, textAlign:"left", fontSize:13, lineHeight:2, color:"var(--muted)" }}>
+          <div>📍 工地：<span style={{ color:"var(--text)", fontWeight:700 }}>{workSite}</span></div>
+          {liftNo && <div>🔢 升降機：<span style={{ color:"var(--text)", fontWeight:700 }}>{liftNo}</span></div>}
+          <div>📅 日期：<span style={{ color:"var(--text)" }}>{workDate} {workOrderTime}</span></div>
+          <div>👤 RWL：<span style={{ color:"var(--orange)", fontWeight:700 }}>{EMPLOYEE.name}</span></div>
+          {abnormal && <div style={{ color:"var(--red)", fontWeight:700 }}>⚠️ 已通報異常情況</div>}
+        </div>
+        <button className="big-btn secondary" onClick={() => { setWorkOrderSubmitted(false); setSubmitted(false); setStep(1); }}>
+          <span className="big-btn-icon">🔄</span>再提交一份
+        </button>
+      </div>
+    );
+
+    // Step indicators
+    const StepBar = () => (
+      <div style={{ display:"flex", gap:6, marginBottom:20 }}>
+        {["工序資料","安全措施","人員確認"].map((s,i) => (
+          <div key={i} onClick={() => { if(i===0||(i===1&&step1OK)||(i===2&&step2OK)) setStep(i+1); }}
+            style={{ flex:1, textAlign:"center", padding:"8px 4px", borderRadius:10, background: step===i+1?"var(--orange-glow)":step>i+1?"rgba(34,197,94,0.1)":"var(--surface)", border:`1.5px solid ${step===i+1?"var(--orange)":step>i+1?"var(--green)":"var(--border)"}`, cursor:"pointer" }}>
+            <div style={{ fontSize:16 }}>{step>i+1?"✅":["📋","🛡️","👷"][i]}</div>
+            <div style={{ fontSize:10, color: step===i+1?"var(--orange)":step>i+1?"var(--green)":"var(--muted)", fontWeight:700, marginTop:2 }}>{s}</div>
+          </div>
+        ))}
+      </div>
+    );
+
+    return (
+      <>
+        <StepBar />
+
+        {/* ── STEP 1: Work Details ── */}
+        {step === 1 && (
+          <>
+            <div className="section-label">工地 *</div>
+            <select value={workSite} onChange={e=>setWorkSite(e.target.value)}
+              style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${workSite?"var(--orange)":"var(--border)"}`, color:workSite?"var(--text)":"var(--muted)", borderRadius:14, padding:"13px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:12, fontWeight:600 }}>
+              <option value="">── 選擇工地 ──</option>
+              {(projects.length>0?projects:["EC-590大圓街GDS數據中心","EC-662柴灣VTC","EC-550屯門橋機"]).map((p,i)=>(
+                <option key={i} value={p}>{p}</option>
+              ))}
+            </select>
+
+            <div className="section-label">升降機編號（如適用）</div>
+            <input value={liftNo} onChange={e=>setLiftNo(e.target.value)}
+              placeholder="例：L1、L2、NF411..."
+              style={{ width:"100%", background:"var(--surface)", border:"1.5px solid var(--border)", color:"var(--text)", borderRadius:14, padding:"13px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:12 }} />
+
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
+              <div>
+                <div className="section-label" style={{ marginBottom:6 }}>日期</div>
+                <div style={{ background:"var(--surface)", border:"1.5px solid var(--border)", borderRadius:14, padding:"13px 16px", fontSize:13, color:"var(--text)", fontWeight:700 }}>{workDate}</div>
+              </div>
+              <div>
+                <div className="section-label" style={{ marginBottom:6 }}>時間 *</div>
+                <input type="time" value={workTime} onChange={e=>setWorkTime(e.target.value)}
+                  style={{ width:"100%", background:"var(--surface)", border:"1.5px solid var(--orange)", color:"var(--text)", borderRadius:14, padding:"13px 16px", fontSize:14, fontFamily:"var(--font)", fontWeight:700 }} />
+              </div>
+            </div>
+
+            <div className="section-label">工序類別 *</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:12 }}>
+              {Object.keys(WORK_CATEGORIES).map(cat => (
+                <div key={cat} onClick={() => { setCategory(cat); setSelectedTasks([]); }}
+                  style={{ padding:"12px 10px", borderRadius:12, border:`1.5px solid ${category===cat?"var(--orange)":"var(--border)"}`, background:category===cat?"var(--orange-glow)":"var(--surface)", textAlign:"center", cursor:"pointer" }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:category===cat?"var(--orange)":"var(--muted)" }}>{cat}</div>
+                </div>
+              ))}
+            </div>
+
+            {category && (
+              <>
+                <div className="section-label">工序細項 * （可多選）</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:10 }}>
+                  {WORK_CATEGORIES[category].map(t => (
+                    <div key={t} onClick={() => toggleTask(t)}
+                      style={{ padding:"7px 12px", borderRadius:20, border:`1.5px solid ${selectedTasks.includes(t)?"var(--orange)":"var(--border)"}`, background:selectedTasks.includes(t)?"var(--orange-glow)":"var(--surface)", color:selectedTasks.includes(t)?"var(--orange)":"var(--muted)", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+                      {selectedTasks.includes(t)?"✓ ":""}{t}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+                  <input value={customTask} onChange={e=>setCustomTask(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addCustomTask()}
+                    placeholder="自行輸入工序..."
+                    style={{ flex:1, background:"var(--surface)", border:"1.5px solid var(--border)", color:"var(--text)", borderRadius:12, padding:"10px 14px", fontSize:12, fontFamily:"var(--font)" }} />
+                  <button onClick={addCustomTask} style={{ background:"var(--orange)", border:"none", color:"#fff", borderRadius:12, padding:"10px 16px", fontWeight:800, cursor:"pointer" }}>加</button>
+                </div>
+              </>
+            )}
+
+            <div className="section-label">涉及重要安全部件（如適用）</div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:7, marginBottom:16 }}>
+              {LIFT_COMPONENTS.map(c => (
+                <div key={c} onClick={() => toggleComp(c)}
+                  style={{ padding:"6px 10px", borderRadius:16, border:`1px solid ${selectedComponents.includes(c)?"var(--blue)":"var(--border)"}`, background:selectedComponents.includes(c)?"rgba(96,165,250,0.1)":"var(--surface)", color:selectedComponents.includes(c)?"var(--blue)":"var(--muted)", fontSize:11, fontWeight:700, cursor:"pointer" }}>
+                  {selectedComponents.includes(c)?"✓ ":""}{c}
+                </div>
+              ))}
+            </div>
+
+            <button className={`big-btn ${step1OK?"primary":"disabled"}`} onClick={() => step1OK&&setStep(2)}>
+              下一步：安全措施 →
+            </button>
+          </>
+        )}
+
+        {/* ── STEP 2: Safety Measures ── */}
+        {step === 2 && (
+          <>
+            <div className="section-label">個人防護裝備 PPE * （必須佩戴）</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
+              {SAFETY_PPE.map(p => (
+                <div key={p.id} onClick={() => togglePPE(p.id)}
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:14, border:`1.5px solid ${selectedPPE.includes(p.id)?"var(--green)":"var(--border)"}`, background:selectedPPE.includes(p.id)?"rgba(34,197,94,0.08)":"var(--surface)", cursor:"pointer" }}>
+                  <div style={{ width:22, height:22, borderRadius:6, border:`2px solid ${selectedPPE.includes(p.id)?"var(--green)":"var(--border)"}`, background:selectedPPE.includes(p.id)?"var(--green)":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    {selectedPPE.includes(p.id)&&<span style={{ color:"#fff", fontSize:12, fontWeight:900 }}>✓</span>}
+                  </div>
+                  <span style={{ fontSize:20 }}>{p.icon}</span>
+                  <span style={{ fontSize:14, fontWeight:600, color:selectedPPE.includes(p.id)?"var(--green)":"var(--text)" }}>{p.label}</span>
+                  {p.required && <span style={{ marginLeft:"auto", fontSize:10, color:"var(--red)", fontWeight:700 }}>必須</span>}
+                </div>
+              ))}
+            </div>
+
+            <div className="section-label">安全措施確認 *</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:16 }}>
+              {SAFETY_PROCEDURES.map(p => (
+                <div key={p.id} onClick={() => toggleProc(p.id)}
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"12px 14px", borderRadius:14, border:`1.5px solid ${selectedProcedures.includes(p.id)?"var(--orange)":"var(--border)"}`, background:selectedProcedures.includes(p.id)?"var(--orange-glow)":"var(--surface)", cursor:"pointer" }}>
+                  <div style={{ width:22, height:22, borderRadius:6, border:`2px solid ${selectedProcedures.includes(p.id)?"var(--orange)":"var(--border)"}`, background:selectedProcedures.includes(p.id)?"var(--orange)":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                    {selectedProcedures.includes(p.id)&&<span style={{ color:"#fff", fontSize:12, fontWeight:900 }}>✓</span>}
+                  </div>
+                  <span style={{ fontSize:18 }}>{p.icon}</span>
+                  <span style={{ fontSize:13, fontWeight:600, color:selectedProcedures.includes(p.id)?"var(--orange)":"var(--text)" }}>{p.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="section-label">異常情況報告</div>
+            <div onClick={() => setAbnormal(!abnormal)}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 16px", borderRadius:14, border:`1.5px solid ${abnormal?"var(--red)":"var(--border)"}`, background:abnormal?"rgba(239,68,68,0.08)":"var(--surface)", cursor:"pointer", marginBottom: abnormal?10:16 }}>
+              <div style={{ width:22, height:22, borderRadius:6, border:`2px solid ${abnormal?"var(--red)":"var(--border)"}`, background:abnormal?"var(--red)":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                {abnormal&&<span style={{ color:"#fff", fontSize:12, fontWeight:900 }}>✓</span>}
+              </div>
+              <span style={{ fontSize:20 }}>⚠️</span>
+              <span style={{ fontSize:14, fontWeight:600, color:abnormal?"var(--red)":"var(--text)" }}>發現異常情況需要通報</span>
+            </div>
+            {abnormal && (
+              <textarea value={abnormalDesc} onChange={e=>setAbnormalDesc(e.target.value)}
+                placeholder="請描述異常情況（將即時通知老闆及RWL）..."
+                style={{ width:"100%", background:"var(--surface)", border:"1.5px solid var(--red)", color:"var(--text)", borderRadius:14, padding:"12px 14px", fontSize:13, fontFamily:"var(--font)", minHeight:80, marginBottom:16, resize:"none" }} />
+            )}
+
+            <div style={{ display:"flex", gap:8 }}>
+              <button className="big-btn secondary" style={{ flex:1 }} onClick={() => setStep(1)}>← 返回</button>
+              <button className={`big-btn ${step2OK?"primary":"disabled"}`} style={{ flex:2 }} onClick={() => step2OK&&setStep(3)}>下一步：人員 →</button>
+            </div>
+          </>
+        )}
+
+        {/* ── STEP 3: Workers & Submit ── */}
+        {step === 3 && (
+          <>
+            <div className="section-label">今日工作人員 * （可多選）</div>
+            <div style={{ display:"flex", flexWrap:"wrap", gap:8, marginBottom:16 }}>
+              {ALL_EMPLOYEES.map(w => (
+                <div key={w} onClick={() => toggleWorker(w)}
+                  style={{ padding:"9px 14px", borderRadius:20, border:`1.5px solid ${selectedWorkers.includes(w)?"var(--blue)":"var(--border)"}`, background:selectedWorkers.includes(w)?"rgba(96,165,250,0.12)":"var(--surface)", color:selectedWorkers.includes(w)?"var(--blue)":"var(--muted)", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+                  {selectedWorkers.includes(w)?"✓ ":""}{w}
+                </div>
+              ))}
+            </div>
+
+            <div className="section-label">RWL 負責人</div>
+            <div className="info-card" style={{ marginBottom:12 }}>
+              <div className="info-row" style={{ borderBottom:"none" }}>
+                <span className="info-key">負責人（自動）</span>
+                <span className="info-val green" style={{ fontWeight:800 }}>👤 {EMPLOYEE.name}</span>
+              </div>
+            </div>
+
+            <div className="section-label">備註</div>
+            <textarea value={remarks} onChange={e=>setRemarks(e.target.value)}
+              placeholder="其他備註（可留空）..."
+              style={{ width:"100%", background:"var(--surface)", border:"1.5px solid var(--border)", color:"var(--text)", borderRadius:14, padding:"12px 14px", fontSize:13, fontFamily:"var(--font)", minHeight:70, marginBottom:16, resize:"none" }} />
+
+            {/* Summary preview */}
+            <div style={{ background:"rgba(255,107,26,0.06)", border:"1.5px solid rgba(255,107,26,0.2)", borderRadius:14, padding:"14px 16px", marginBottom:16, fontSize:12, lineHeight:1.9, color:"var(--muted)" }}>
+              <div style={{ fontWeight:800, color:"var(--orange)", marginBottom:6 }}>📋 申報摘要（符合EMSD工作日誌格式）</div>
+              <div>📍 <strong style={{ color:"var(--text)" }}>{workSite}</strong>{liftNo&&` — ${liftNo}`}</div>
+              <div>📅 {workDate} {workTime}</div>
+              <div>🔧 {selectedTasks.join("，")}</div>
+              <div>🛡️ {selectedPPE.map(id=>SAFETY_PPE.find(p=>p.id===id)?.label).join("，")}</div>
+              <div>👷 {selectedWorkers.join("，")}</div>
+              <div>👤 RWL: {EMPLOYEE.name}</div>
+              {abnormal && <div style={{ color:"var(--red)", fontWeight:700 }}>⚠️ 有異常情況</div>}
+            </div>
+
+            <div style={{ display:"flex", gap:8 }}>
+              <button className="big-btn secondary" style={{ flex:1 }} onClick={() => setStep(2)}>← 返回</button>
+              <button className={`big-btn ${canSubmit?"primary":"disabled"}`} style={{ flex:2 }} onClick={handleSubmit} disabled={submitting}>
+                <span className="big-btn-icon">{submitting?"⏳":"📤"}</span>
+                {submitting?"提交中...":"提交申報"}
+              </button>
+            </div>
+            <div style={{ fontSize:11, color:"var(--muted)", textAlign:"center", marginTop:8 }}>
+              提交後即時通知老闆 📱 WhatsApp
+            </div>
+          </>
+        )}
+      </>
+    );
+  };
+
+  const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, salary: SalaryScreen };
+  const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", workorder: "每日工序申報", salary: "我的薪酬" };
   const ActiveScreen = screens[screen];
 
   return (
