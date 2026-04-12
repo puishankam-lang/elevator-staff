@@ -231,6 +231,7 @@ const S = `
   .action-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
     gap: 12px;
     margin-bottom: 20px;
   }
@@ -242,6 +243,7 @@ const S = `
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     cursor: pointer;
     text-align: center;
@@ -250,6 +252,7 @@ const S = `
     -webkit-tap-highlight-color: transparent;
     position: relative;
     overflow: hidden;
+    min-height: 120px;
   }
   .action-btn:active { transform: scale(0.97); }
   .action-btn.orange-accent { border-color: rgba(255,107,26,0.3); background: rgba(255,107,26,0.05); }
