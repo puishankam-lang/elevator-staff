@@ -1024,7 +1024,12 @@ function MainApp({ user, onLogout, projects = [] }) {
   const [safetyChecks, setSafetyChecks] = useState([false, false, false]);
   const [signed, setSigned] = useState(false);
   const [signedTime, setSignedTime] = useState(null);
-  const [selectedProject, setSelectedProject] = useState(projects[0] || "");
+  const [selectedProject, setSelectedProjectState] = useState("");
+  const selectedProjectRef = React.useRef("");
+  const setSelectedProject = (val) => {
+    selectedProjectRef.current = val;
+    setSelectedProjectState(val);
+  };
 
   // Attendance state
   const [checkedIn, setCheckedIn] = useState(false);
@@ -1369,12 +1374,18 @@ function MainApp({ user, onLogout, projects = [] }) {
           <div className="clock-date">{dateStr}</div>
         </div>
 
-        {/* Site selector */}
+        {/* Site selector - uncontrolled to prevent re-render flash */}
         {!checkedIn && (
           <>
             <div className="section-label">今日工地 *</div>
-            <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
-              style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${selectedProject?"var(--orange)":"var(--border)"}`, color:selectedProject?"var(--text)":"var(--muted)", borderRadius:14, padding:"14px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:16, fontWeight:600 }}>
+            <select
+              defaultValue={selectedProjectRef.current}
+              onChange={e => {
+                selectedProjectRef.current = e.target.value;
+                setSelectedProjectState(e.target.value);
+              }}
+              style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${selectedProject?"var(--orange)":"var(--border)"}`, color:selectedProject?"var(--text)":"var(--muted)", borderRadius:14, padding:"14px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:16, fontWeight:600 }}
+            >
               <option value="">── 選擇今日工地 ──</option>
               {SITE_LIST.map((p,i) => <option key={i} value={p}>{p}</option>)}
             </select>
@@ -2203,16 +2214,7 @@ function MainApp({ user, onLogout, projects = [] }) {
 
   const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, salary: SalaryScreen };
   const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", workorder: "每日工序申報", salary: "我的薪酬" };
-  // Call screen functions directly (not as components) to prevent unmount/remount on re-render
-  const renderScreen = () => {
-    if (screen === "home") return HomeScreen();
-    if (screen === "safety") return SafetyScreen();
-    if (screen === "gps") return GpsScreen();
-    if (screen === "progress") return ProgressScreen();
-    if (screen === "workorder") return WorkOrderScreen();
-    if (screen === "salary") return SalaryScreen();
-    return HomeScreen();
-  };
+  const ActiveScreen = screens[screen];
 
   return (
     <>
@@ -2255,7 +2257,7 @@ function MainApp({ user, onLogout, projects = [] }) {
 
         {/* Content */}
         <div className="content">
-          {renderScreen()}
+          <ActiveScreen />
         </div>
 
         {/* Bottom Nav */}
