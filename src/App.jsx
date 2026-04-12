@@ -801,7 +801,11 @@ function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB }) {
   const [foundEmp, setFoundEmp] = useState(null);
 
   const handlePhoneNext = () => {
-    const emp = employees.find(e => e.phone === phone.replace(/\s/g, ""));
+    const cleanPhone = phone.replace(/\s/g, "");
+    // Check Supabase employees first, then always fallback to EMPLOYEE_DB
+    const allEmps = [...employees];
+    EMPLOYEE_DB.forEach(e => { if (!allEmps.find(x => x.phone === e.phone)) allEmps.push(e); });
+    const emp = allEmps.find(e => e.phone === cleanPhone);
     if (!emp) { setError("找不到此手機號碼，請聯絡老闆"); return; }
     setFoundEmp(emp);
     setError("");
@@ -937,8 +941,8 @@ export default function App() {
           sbFetch("employees", { order: "created_at.asc" }),
           sbFetch("projects", { filter: "phase=eq.active", order: "name.asc", limit: 200 })
         ]);
-        if (emps.length > 0) {
-          // Map DB employees to app format
+        // Only use Supabase employees if they have phone numbers
+        if (emps.length > 0 && emps.some(e => e.phone)) {
           const mapped = emps.map(e => ({
             id: e.id,
             name: e.name,
@@ -956,6 +960,7 @@ export default function App() {
           }));
           setEmployees(mapped);
         }
+        // Always use EMPLOYEE_DB as login fallback (merged with Supabase)
         if (projs.length > 0) setProjects(projs.map(p => p.name));
         setDbReady(true);
       } catch(e) {
