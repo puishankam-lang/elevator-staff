@@ -1324,27 +1324,32 @@ function MainApp({ user, onLogout, projects = [] }) {
   };
 
   const GpsScreen = () => {
+    const SITE_LIST = projects.length > 0 ? projects : [
+      "EC-590大圓街GDS數據中心升降機", "EC-662柴灣VTC", "EC-550屯門橋機",
+      "EC-547將軍澳政府聯用辦工大樓", "EC-530西灣河綜合大樓",
+      "EC-540柴灣政府綜合大樓", "EC-591 CUHK LAB",
+      "EC-617柴灣政府物料營運中心", "EC-621成運街數據中心", "EC-641永信大廈",
+    ];
+
     const handleCheckIn = async () => {
+      if (!selectedProject) { showToast("⚠️ 請先選擇今日工地", "error"); return; }
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
-      setCheckedIn(true);
-      setCheckInTime(t);
+      setCheckedIn(true); setCheckInTime(t);
       showToast("📍 簽到成功！");
       try {
-        const today = new Date().toISOString().split("T")[0];
         await sbInsert("attendance", {
           employee_id: EMPLOYEE.id,
-          date: today,
+          date: new Date().toISOString().split("T")[0],
           check_in: new Date().toISOString(),
           status: "present",
-          site: selectedProject || EMPLOYEE.site || ""
+          site: selectedProject
         });
       } catch(e) {}
     };
 
     const handleCheckOut = async () => {
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
-      setCheckedOut(true);
-      setCheckOutTime(t);
+      setCheckedOut(true); setCheckOutTime(t);
       showToast("👋 簽退完成！");
       try {
         const today = new Date().toISOString().split("T")[0];
@@ -1353,9 +1358,7 @@ function MainApp({ user, onLogout, projects = [] }) {
           { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
         );
         const rows = await res.json();
-        if (rows.length > 0) {
-          await sbUpdate("attendance", rows[0].id, { check_out: new Date().toISOString() });
-        }
+        if (rows.length > 0) await sbUpdate("attendance", rows[0].id, { check_out: new Date().toISOString() });
       } catch(e) {}
     };
 
@@ -1366,85 +1369,99 @@ function MainApp({ user, onLogout, projects = [] }) {
           <div className="clock-date">{dateStr}</div>
         </div>
 
+        {/* Site selector */}
+        {!checkedIn && (
+          <>
+            <div className="section-label">今日工地 *</div>
+            <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}
+              style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${selectedProject?"var(--orange)":"var(--border)"}`, color:selectedProject?"var(--text)":"var(--muted)", borderRadius:14, padding:"14px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:16, fontWeight:600 }}>
+              <option value="">── 選擇今日工地 ──</option>
+              {SITE_LIST.map((p,i) => <option key={i} value={p}>{p}</option>)}
+            </select>
+          </>
+        )}
+
+        {checkedIn && (
+          <div style={{ background:"rgba(34,197,94,0.08)", border:"1.5px solid rgba(34,197,94,0.2)", borderRadius:14, padding:"12px 16px", marginBottom:14, display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontSize:20 }}>📍</span>
+            <div>
+              <div style={{ fontSize:11, color:"var(--muted)" }}>今日工地</div>
+              <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{selectedProject}</div>
+            </div>
+          </div>
+        )}
+
         <div className="map-mock">
           <div className="map-grid-lines" />
           <div className="map-pulse-ring" />
           <div className="map-pulse-ring2" />
           <div className="map-pin" style={{ background: isInZone ? "var(--orange)" : "var(--red)" }} />
-          <div className="map-badge">📍 {EMPLOYEE.site}</div>
+          <div className="map-badge">📍 {selectedProject ? selectedProject.slice(0,14) : "未選工地"}</div>
           <div className="map-coords">22.3193°N 114.1694°E</div>
-          <div className="inside-badge" style={{ background: isInZone ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)", borderColor: isInZone ? "var(--green)" : "var(--red)", color: isInZone ? "var(--green)" : "var(--red)" }}>
+          <div className="inside-badge" style={{ background: isInZone?"rgba(34,197,94,0.15)":"rgba(239,68,68,0.15)", borderColor: isInZone?"var(--green)":"var(--red)", color: isInZone?"var(--green)":"var(--red)" }}>
             {isInZone ? "✓ 範圍內" : "✗ 範圍外"}
           </div>
         </div>
 
-        {/* GPS zone warning */}
         {checkedIn && !checkedOut && !isInZone && gpsWatching && (
-          <div style={{ background: "rgba(239,68,68,0.1)", border: "1.5px solid rgba(239,68,68,0.3)", borderRadius: 14, padding: "12px 16px", marginBottom: 14, display: "flex", gap: 10, alignItems: "center" }}>
-            <span style={{ fontSize: 20 }}>⚠️</span>
+          <div style={{ background:"rgba(239,68,68,0.1)", border:"1.5px solid rgba(239,68,68,0.3)", borderRadius:14, padding:"12px 16px", marginBottom:14, display:"flex", gap:10, alignItems:"center" }}>
+            <span style={{ fontSize:20 }}>⚠️</span>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--red)" }}>已離開工地範圍！</div>
-              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>系統將自動記錄簽退時間</div>
+              <div style={{ fontSize:13, fontWeight:800, color:"var(--red)" }}>已離開工地範圍！</div>
+              <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>系統將自動記錄簽退時間</div>
             </div>
           </div>
         )}
 
-        <div className="info-card" style={{ marginBottom: 14 }}>
+        <div className="info-card" style={{ marginBottom:14 }}>
           <div className="info-row">
             <span className="info-key">定位狀態</span>
-            <span className={`pill ${gpsWatching ? "green" : "orange"}`}>
-              <span className="pill-dot" />{gpsWatching ? "GPS 監測中" : "模擬定位"}
-            </span>
+            <span className={`pill ${gpsWatching?"green":"orange"}`}><span className="pill-dot" />{gpsWatching?"GPS 監測中":"模擬定位"}</span>
           </div>
           <div className="info-row">
             <span className="info-key">工地範圍</span>
-            <span className={`info-val ${isInZone ? "green" : "red"}`}>
-              {isInZone ? "✅ 範圍內（150米）" : "❌ 已離開範圍"}
-            </span>
+            <span className={`info-val ${isInZone?"green":"red"}`}>{isInZone?"✅ 範圍內（150米）":"❌ 已離開範圍"}</span>
           </div>
           <div className="info-row">
             <span className="info-key">今日簽到</span>
-            <span className={`info-val ${checkedIn ? "green" : "orange"}`}>{checkedIn ? checkInTime : "未簽到"}</span>
+            <span className={`info-val ${checkedIn?"green":"orange"}`}>{checkedIn?checkInTime:"未簽到"}</span>
           </div>
           <div className="info-row">
             <span className="info-key">今日簽退</span>
-            <span className={`info-val ${checkedOut ? "green" : "muted"}`}>{checkedOut ? checkOutTime : "–"}</span>
+            <span className={`info-val ${checkedOut?"green":"muted"}`}>{checkedOut?checkOutTime:"–"}</span>
           </div>
-          <div className="info-row" style={{ borderBottom: "none" }}>
-            <span className="info-key">🕖 自動簽退時間</span>
-            <span className="info-val" style={{ color: "var(--blue)" }}>{autoCheckoutTime}</span>
+          <div className="info-row" style={{ borderBottom:"none" }}>
+            <span className="info-key">🕖 自動簽退</span>
+            <span className="info-val" style={{ color:"var(--blue)" }}>{autoCheckoutTime}</span>
           </div>
         </div>
 
-        {/* Auto-checkout notice */}
         {checkedIn && !checkedOut && (
-          <div style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)", borderRadius: 12, padding: "10px 14px", marginBottom: 14, fontSize: 12, color: "var(--muted)", display: "flex", gap: 8 }}>
-            <span>💡</span>
-            <span>App 開住時，離開工地 150 米範圍會自動簽退。如 App 關閉，系統將於 {autoCheckoutTime} 自動記錄簽退。</span>
+          <div style={{ background:"rgba(96,165,250,0.08)", border:"1px solid rgba(96,165,250,0.2)", borderRadius:12, padding:"10px 14px", marginBottom:14, fontSize:12, color:"var(--muted)", display:"flex", gap:8 }}>
+            <span>💡</span><span>系統將於 {autoCheckoutTime} 自動記錄簽退。</span>
           </div>
         )}
 
         {!checkedIn ? (
-          <button className="big-btn primary" onClick={handleCheckIn}>
+          <button className={`big-btn ${selectedProject?"primary":"disabled"}`} onClick={handleCheckIn}>
             <span className="big-btn-icon">📍</span>
-            立即簽到
+            {selectedProject?"立即簽到":"請先選擇工地"}
           </button>
         ) : !checkedOut ? (
           <>
-            <div className="info-card" style={{ marginBottom: 12, textAlign: "center", background: "rgba(34,197,94,0.06)", borderColor: "rgba(34,197,94,0.2)" }}>
-              <div style={{ fontSize: 14, color: "var(--green)", fontWeight: 700, padding: "4px 0" }}>✅ 已於 {checkInTime} 成功簽到</div>
+            <div className="info-card" style={{ marginBottom:12, textAlign:"center", background:"rgba(34,197,94,0.06)", borderColor:"rgba(34,197,94,0.2)" }}>
+              <div style={{ fontSize:14, color:"var(--green)", fontWeight:700, padding:"4px 0" }}>✅ 已於 {checkInTime} 成功簽到</div>
             </div>
             <button className="big-btn danger" onClick={handleCheckOut}>
-              <span className="big-btn-icon">👋</span>
-              下班簽退
+              <span className="big-btn-icon">👋</span>下班簽退
             </button>
           </>
         ) : (
-          <div className="info-card" style={{ textAlign: "center", background: "rgba(34,197,94,0.06)", borderColor: "rgba(34,197,94,0.2)" }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--green)", marginBottom: 4 }}>今日考勤完成</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>簽到 {checkInTime}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>簽退 {checkOutTime}</div>
+          <div className="info-card" style={{ textAlign:"center", background:"rgba(34,197,94,0.06)", borderColor:"rgba(34,197,94,0.2)" }}>
+            <div style={{ fontSize:36, marginBottom:8 }}>✅</div>
+            <div style={{ fontSize:15, fontWeight:800, color:"var(--green)", marginBottom:4 }}>今日考勤完成</div>
+            <div style={{ fontSize:12, color:"var(--muted)" }}>簽到 {checkInTime} · 簽退 {checkOutTime}</div>
+            <div style={{ fontSize:12, color:"var(--orange)", marginTop:4 }}>{selectedProject}</div>
           </div>
         )}
       </>
@@ -1801,15 +1818,30 @@ function MainApp({ user, onLogout, projects = [] }) {
     );
   };
 
-  // ── 每日工序安全申報 (Daily Work Order) ─────────────────────────────────────
-  // ── 每日工序安全申報 (EMSD-compliant Daily Work Order) ──────────────────────
+  // ── 每日工序安全申報 State (moved to MainApp to prevent re-render reset) ────
   const [workOrderSubmitted, setWorkOrderSubmitted] = useState(false);
   const [workOrderTime, setWorkOrderTime] = useState(null);
+  const [woWorkSite, setWoWorkSite] = useState("");
+  const [woLiftNo, setWoLiftNo] = useState("");
+  const [woWorkTime, setWoWorkTime] = useState("09:30");
+  const [woCategory, setWoCategory] = useState("");
+  const [woSelectedTasks, setWoSelectedTasks] = useState([]);
+  const [woCustomTask, setWoCustomTask] = useState("");
+  const [woSelectedPPE, setWoSelectedPPE] = useState(["helmet","gloves","shoes"]);
+  const [woSelectedProcedures, setWoSelectedProcedures] = useState(["signage","handover"]);
+  const [woSelectedComponents, setWoSelectedComponents] = useState([]);
+  const [woSelectedWorkers, setWoSelectedWorkers] = useState([]);
+  const [woAbnormal, setWoAbnormal] = useState(false);
+  const [woAbnormalDesc, setWoAbnormalDesc] = useState("");
+  const [woRemarks, setWoRemarks] = useState("");
+  const [woSubmitting, setWoSubmitting] = useState(false);
+  const [woStep, setWoStep] = useState(1);
 
   const WorkOrderScreen = () => {
     const MAKE_WEBHOOK = "https://hook.eu2.make.com/YOUR_WEBHOOK_ID";
+    const workDate = new Date().toLocaleDateString("zh-HK", { year: "numeric", month: "numeric", day: "numeric" });
 
-    // EMSD-compliant work categories (升降機工程及自動梯工程實務守則)
+    // EMSD-compliant work categories
     const WORK_CATEGORIES = {
       "安裝工程": ["安裝路軌（導軌）", "安裝外門框及門頭", "安裝地砵", "安裝機廂", "安裝機頂設備", "安裝控制櫃", "安裝曳引機", "安裝緩衝器", "放線（控制線/電力線）", "安裝ARD緊急救援裝置", "安裝安全部件"],
       "維修保養": ["定期保養", "特別保養（舊式升降機）", "緊急維修", "更換零件", "清潔機房", "清潔井道", "潤滑保養", "調校電梯", "測試安全裝置"],
@@ -1845,32 +1877,33 @@ function MainApp({ user, onLogout, projects = [] }) {
 
     const ALL_EMPLOYEES = (EMPLOYEE_DB || []).map(e => e.name);
 
-    const [workSite, setWorkSite] = useState(selectedProject || "");
-    const [liftNo, setLiftNo] = useState("");
-    const [workDate] = useState(new Date().toLocaleDateString("zh-HK", { year: "numeric", month: "numeric", day: "numeric" }));
-    const [workTime, setWorkTime] = useState("09:30");
-    const [category, setCategory] = useState("");
-    const [selectedTasks, setSelectedTasks] = useState([]);
-    const [customTask, setCustomTask] = useState("");
-    const [selectedPPE, setSelectedPPE] = useState(["helmet","gloves","shoes"]);
-    const [selectedProcedures, setSelectedProcedures] = useState(["signage","handover"]);
-    const [selectedComponents, setSelectedComponents] = useState([]);
-    const [selectedWorkers, setSelectedWorkers] = useState([EMPLOYEE.name]);
-    const [abnormal, setAbnormal] = useState(false);
-    const [abnormalDesc, setAbnormalDesc] = useState("");
-    const [remarks, setRemarks] = useState("");
-    const [submitting, setSubmitting] = useState(false);
-    const [submitted, setSubmitted] = useState(workOrderSubmitted);
-    const [step, setStep] = useState(1); // 3-step form
+    // Use MainApp-level state via wo* variables
+    const workSite = woWorkSite; const setWorkSite = setWoWorkSite;
+    const liftNo = woLiftNo; const setLiftNo = setWoLiftNo;
+    const workTime = woWorkTime; const setWorkTime = setWoWorkTime;
+    const category = woCategory; const setCategory = setWoCategory;
+    const selectedTasks = woSelectedTasks; const setSelectedTasks = setWoSelectedTasks;
+    const customTask = woCustomTask; const setCustomTask = setWoCustomTask;
+    const selectedPPE = woSelectedPPE; const setSelectedPPE = setWoSelectedPPE;
+    const selectedProcedures = woSelectedProcedures; const setSelectedProcedures = setWoSelectedProcedures;
+    const selectedComponents = woSelectedComponents; const setSelectedComponents = setWoSelectedComponents;
+    const selectedWorkers = woSelectedWorkers.length > 0 ? woSelectedWorkers : [EMPLOYEE.name];
+    const setSelectedWorkers = setWoSelectedWorkers;
+    const abnormal = woAbnormal; const setAbnormal = setWoAbnormal;
+    const abnormalDesc = woAbnormalDesc; const setAbnormalDesc = setWoAbnormalDesc;
+    const remarks = woRemarks; const setRemarks = setWoRemarks;
+    const submitting = woSubmitting; const setSubmitting = setWoSubmitting;
+    const submitted = workOrderSubmitted;
+    const step = woStep; const setStep = setWoStep;
 
-    const toggleTask = (t) => setSelectedTasks(p => p.includes(t)?p.filter(x=>x!==t):[...p,t]);
-    const togglePPE = (id) => setSelectedPPE(p => p.includes(id)?p.filter(x=>x!==id):[...p,id]);
-    const toggleProc = (id) => setSelectedProcedures(p => p.includes(id)?p.filter(x=>x!==id):[...p,id]);
-    const toggleComp = (c) => setSelectedComponents(p => p.includes(c)?p.filter(x=>x!==c):[...p,c]);
-    const toggleWorker = (w) => setSelectedWorkers(p => p.includes(w)?p.filter(x=>x!==w):[...p,w]);
-    const addCustomTask = () => { if (!customTask.trim()) return; setSelectedTasks(p=>[...p,customTask.trim()]); setCustomTask(""); };
+    const toggleTask = (t) => setWoSelectedTasks(p => p.includes(t)?p.filter(x=>x!==t):[...p,t]);
+    const togglePPE = (id) => setWoSelectedPPE(p => p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+    const toggleProc = (id) => setWoSelectedProcedures(p => p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+    const toggleComp = (c) => setWoSelectedComponents(p => p.includes(c)?p.filter(x=>x!==c):[...p,c]);
+    const toggleWorker = (w) => setWoSelectedWorkers(p => p.includes(w)?p.filter(x=>x!==w):[...p,w]);
+    const addCustomTask = () => { if (!woCustomTask.trim()) return; setWoSelectedTasks(p=>[...p,woCustomTask.trim()]); setWoCustomTask(""); };
 
-    const step1OK = workSite && category && selectedTasks.length > 0;
+    const step1OK = workSite && category;
     const step2OK = selectedPPE.length > 0 && selectedProcedures.length > 0;
     const step3OK = selectedWorkers.length > 0;
     const canSubmit = step1OK && step2OK && step3OK;
@@ -1930,14 +1963,12 @@ function MainApp({ user, onLogout, projects = [] }) {
         } catch(e) {}
         setWorkOrderSubmitted(true);
         setWorkOrderTime(workTime);
-        setSubmitted(true);
         showToast("✅ 工序申報已提交，WhatsApp 通知已發送！");
       } catch(e) {
         setWorkOrderSubmitted(true);
-        setSubmitted(true);
         showToast("✅ 工序申報已提交！");
       }
-      setSubmitting(false);
+      setWoSubmitting(false);
     };
 
     if (submitted) return (
@@ -1951,7 +1982,7 @@ function MainApp({ user, onLogout, projects = [] }) {
           <div>👤 RWL：<span style={{ color:"var(--orange)", fontWeight:700 }}>{EMPLOYEE.name}</span></div>
           {abnormal && <div style={{ color:"var(--red)", fontWeight:700 }}>⚠️ 已通報異常情況</div>}
         </div>
-        <button className="big-btn secondary" onClick={() => { setWorkOrderSubmitted(false); setSubmitted(false); setStep(1); }}>
+        <button className="big-btn secondary" onClick={() => { setWorkOrderSubmitted(false); setWoStep(1); setWoCategory(""); setWoSelectedTasks([]); setWoSelectedPPE(["helmet","gloves","shoes"]); setWoSelectedProcedures(["signage","handover"]); setWoSelectedComponents([]); setWoAbnormal(false); setWoAbnormalDesc(""); setWoRemarks(""); }}>
           <span className="big-btn-icon">🔄</span>再提交一份
         </button>
       </div>
@@ -1981,7 +2012,20 @@ function MainApp({ user, onLogout, projects = [] }) {
             <select value={workSite} onChange={e=>setWorkSite(e.target.value)}
               style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${workSite?"var(--orange)":"var(--border)"}`, color:workSite?"var(--text)":"var(--muted)", borderRadius:14, padding:"13px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:12, fontWeight:600 }}>
               <option value="">── 選擇工地 ──</option>
-              {(projects.length>0?projects:["EC-590大圓街GDS數據中心","EC-662柴灣VTC","EC-550屯門橋機"]).map((p,i)=>(
+              {(projects.length > 0 ? projects : [
+                "EC-590大圓街GDS數據中心升降機",
+                "EC-662柴灣VTC",
+                "EC-550屯門橋機",
+                "EC-547將軍澳政府聯用辦工大樓",
+                "EC-530西灣河綜合大樓",
+                "EC-540柴灣政府綜合大樓",
+                "EC-591 CUHK LAB",
+                "EC-617柴灣政府物料營運中心",
+                "EC-621成運街數據中心",
+                "EC-641永信大廈",
+                "EC-642旺角砵蘭街停車場",
+                "EC-648彩暉花園",
+              ]).map((p,i) => (
                 <option key={i} value={p}>{p}</option>
               ))}
             </select>
@@ -2159,7 +2203,16 @@ function MainApp({ user, onLogout, projects = [] }) {
 
   const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, salary: SalaryScreen };
   const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", workorder: "每日工序申報", salary: "我的薪酬" };
-  const ActiveScreen = screens[screen];
+  // Call screen functions directly (not as components) to prevent unmount/remount on re-render
+  const renderScreen = () => {
+    if (screen === "home") return HomeScreen();
+    if (screen === "safety") return SafetyScreen();
+    if (screen === "gps") return GpsScreen();
+    if (screen === "progress") return ProgressScreen();
+    if (screen === "workorder") return WorkOrderScreen();
+    if (screen === "salary") return SalaryScreen();
+    return HomeScreen();
+  };
 
   return (
     <>
@@ -2202,7 +2255,7 @@ function MainApp({ user, onLogout, projects = [] }) {
 
         {/* Content */}
         <div className="content">
-          <ActiveScreen />
+          {renderScreen()}
         </div>
 
         {/* Bottom Nav */}
