@@ -158,7 +158,7 @@ const S = `
   }
   .greet-text {}
   .greet-name { font-size: 17px; font-weight: 800; color: var(--text); }
-  .greet-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .greet-sub { font-size: 14px; color: var(--muted); margin-top: 1px; }
   .greet-badge {
     margin-left: auto;
     background: var(--orange-glow);
@@ -181,7 +181,7 @@ const S = `
 
   /* Section label */
   .section-label {
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 800;
     letter-spacing: 1.5px;
     text-transform: uppercase;
@@ -345,8 +345,8 @@ const S = `
     border-bottom: 1px solid var(--border);
   }
   .info-row:last-child { border-bottom: none; }
-  .info-key { font-size: 13px; color: var(--muted); font-weight: 600; }
-  .info-val { font-size: 14px; color: var(--text); font-weight: 800; text-align: right; }
+  .info-key { font-size: 15px; color: var(--muted); font-weight: 600; }
+  .info-val { font-size: 16px; color: var(--text); font-weight: 800; text-align: right; }
   .info-val.orange { color: var(--orange); }
   .info-val.green { color: var(--green); }
   .info-val.red { color: var(--red); }
@@ -394,8 +394,8 @@ const S = `
     background: var(--surface2);
   }
   .check-box.checked { background: var(--green); border-color: var(--green); }
-  .check-text { font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
-  .check-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .check-text { font-size: 16px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .check-sub { font-size: 14px; color: var(--muted); margin-top: 2px; }
 
   /* Sign pad mock */
   .sign-area {
@@ -539,7 +539,7 @@ const S = `
   .photo-upload.has-photo { border-color: var(--green); border-style: solid; background: rgba(34,197,94,0.04); }
   .photo-upload-icon { font-size: 40px; }
   .photo-upload-label { font-size: 14px; font-weight: 700; color: var(--muted); }
-  .photo-upload-sub { font-size: 12px; color: var(--muted); opacity: 0.6; }
+  .photo-upload-sub { font-size: 14px; color: var(--muted); opacity: 0.6; }
   .photo-thumbs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
   .photo-thumb {
     width: 68px; height: 68px;
@@ -714,7 +714,7 @@ const S = `
   }
   .nav-tab:active { background: var(--surface2); }
   .nav-tab-icon { font-size: 22px; line-height: 1; }
-  .nav-tab-label { font-size: 10px; font-weight: 700; color: var(--muted); }
+  .nav-tab-label { font-size: 13px; font-weight: 700; color: var(--muted); }
   .nav-tab.active .nav-tab-label { color: var(--orange); }
   .nav-tab.active .nav-tab-icon { filter: brightness(1.2); }
   .nav-indicator {
@@ -761,25 +761,8 @@ const S = `
 
 // 👇 員工帳號資料庫 — 老闆可以自行修改姓名、號碼、PIN、日薪
 const EMPLOYEE_DB = [
-  { id: 1,  name: "姚奇敏", role: "電梯技工", phone: "52392789", pin: "1234", site: "工地", rate: 850, color: "#FF6B1A", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 2,  name: "李國森", role: "電梯技工", phone: "68908731", pin: "1234", site: "工地", rate: 850, color: "#22C55E", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 3,  name: "賴偉志", role: "電梯技工", phone: "91498681", pin: "1234", site: "工地", rate: 850, color: "#60A5FA", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 4,  name: "韓小錦", role: "電梯技工", phone: "57631557", pin: "1234", site: "工地", rate: 850, color: "#A78BFA", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 5,  name: "彭金花", role: "電梯技工", phone: "93405725", pin: "1234", site: "工地", rate: 850, color: "#FB923C", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 6,  name: "李文彪", role: "電梯技工", phone: "63573726", pin: "1234", site: "工地", rate: 850, color: "#F43F5E", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 7,  name: "吳昭鵬", role: "電梯技工", phone: "56111810", pin: "1234", site: "工地", rate: 850, color: "#06B6D4", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 8,  name: "耿華成", role: "電梯技工", phone: "95615270", pin: "1234", site: "工地", rate: 850, color: "#84CC16", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 9,  name: "蔡貴明", role: "電梯技工", phone: "59383172", pin: "1234", site: "工地", rate: 850, color: "#E879F9", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 10, name: "莫家文", role: "電梯技工", phone: "65704790", pin: "1234", site: "工地", rate: 850, color: "#F0C000", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 11, name: "陳文軒", role: "電梯技工", phone: "51115103", pin: "1234", site: "工地", rate: 850, color: "#22C55E", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 12, name: "李志軍", role: "電梯技工", phone: "98564747", pin: "1234", site: "工地", rate: 850, color: "#60A5FA", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 13, name: "蔡洵義", role: "電梯技工", phone: "61503368", pin: "1234", site: "工地", rate: 850, color: "#A78BFA", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 14, name: "蔡洵忠", role: "電梯技工", phone: "69323753", pin: "1234", site: "工地", rate: 850, color: "#FB923C", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 15, name: "鄧達財", role: "電梯技工", phone: "55731042", pin: "1234", site: "工地", rate: 850, color: "#F43F5E", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 16, name: "梁培煊", role: "電梯技工", phone: "69322800", pin: "1234", site: "工地", rate: 850, color: "#06B6D4", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 17, name: "馮永昌", role: "電梯技工", phone: "92848912", pin: "1234", site: "工地", rate: 850, color: "#84CC16", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 18, name: "陳煜良", role: "電梯技工", phone: "63062572", pin: "1234", site: "工地", rate: 850, color: "#E879F9", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
-  { id: 19, name: "李華渡", role: "電梯技工", phone: "51156023", pin: "1234", site: "工地", rate: 850, color: "#F0C000", presentDays: 22, salaryHistory: [{ month: "2025年7月", amount: 18700, days: 22, status: "pending" },{ month: "2025年6月", amount: 17000, days: 20, status: "paid" },{ month: "2025年5月", amount: 17850, days: 21, status: "paid" }]},
+  // 員工資料由老闆在管理系統新增，透過 Supabase 登入
+  // 如需測試，請聯絡系統管理員
 ];
 
 const genAttendance = (presentDays) => {
@@ -908,7 +891,7 @@ function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB }) {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginTop: 20 }}>
               {["1","2","3","4","5","6","7","8","9","","0","DEL"].map((k, i) => (
                 <button key={i} onClick={() => k && handlePinKey(k)}
-                  style={{ height: 64, borderRadius: 14, border: "1.5px solid var(--border)", background: k === "DEL" ? "rgba(239,68,68,0.1)" : k === "" ? "transparent" : "var(--surface)", fontSize: k === "DEL" ? 18 : 24, fontWeight: 900, color: k === "DEL" ? "var(--red)" : "var(--text)", cursor: k ? "pointer" : "default", fontFamily: "var(--font)", transition: "transform 0.1s, background 0.1s", visibility: k === "" ? "hidden" : "visible" }}
+                  style={{ height: 72, borderRadius: 14, border: "1.5px solid var(--border)", background: k === "DEL" ? "rgba(239,68,68,0.1)" : k === "" ? "transparent" : "var(--surface)", fontSize: k === "DEL" ? 22 : 30, fontWeight: 900, color: k === "DEL" ? "var(--red)" : "var(--text)", cursor: k ? "pointer" : "default", fontFamily: "var(--font)", transition: "transform 0.1s, background 0.1s", visibility: k === "" ? "hidden" : "visible" }}
                   onMouseDown={e => e.currentTarget.style.transform = "scale(0.94)"}
                   onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
                 >
@@ -929,12 +912,75 @@ function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB }) {
 }
 
 // ── Component ─────────────────────────────────────
+// ── Offline Queue Helpers ────────────────────────────────────────────────────
+const QUEUE_KEY = "chun_fai_offline_queue";
+
+function queueGet() {
+  try { return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]"); } catch { return []; }
+}
+function queueSave(q) {
+  try { localStorage.setItem(QUEUE_KEY, JSON.stringify(q)); } catch {}
+}
+function queueAdd(record) {
+  const q = queueGet();
+  q.push({ ...record, _queuedAt: new Date().toISOString(), _id: Date.now() });
+  queueSave(q);
+}
+function queueRemove(id) {
+  queueSave(queueGet().filter(r => r._id !== id));
+}
+
+async function syncOfflineQueue(supabaseUrl, supabaseKey) {
+  const q = queueGet();
+  if (q.length === 0) return 0;
+  let synced = 0;
+  for (const record of q) {
+    try {
+      const { _queuedAt, _id, _table, _method, _matchId, ...data } = record;
+      if (_method === "INSERT") {
+        const res = await fetch(`${supabaseUrl}/rest/v1/${_table}`, {
+          method: "POST",
+          headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}`, "Content-Type": "application/json", "Prefer": "return=minimal" },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) { queueRemove(_id); synced++; }
+      } else if (_method === "PATCH" && _matchId) {
+        const res = await fetch(`${supabaseUrl}/rest/v1/${_table}?id=eq.${_matchId}`, {
+          method: "PATCH",
+          headers: { "apikey": supabaseKey, "Authorization": `Bearer ${supabaseKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) { queueRemove(_id); synced++; }
+      }
+    } catch(e) { /* still offline, leave in queue */ }
+  }
+  return synced;
+}
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loginError, setLoginError] = useState("");
   const [employees, setEmployees] = useState(EMPLOYEE_DB);
   const [projects, setProjects] = useState([]);
   const [dbReady, setDbReady] = useState(false);
+  const [offlineQueue, setOfflineQueue] = useState(queueGet().length);
+
+  // Auto-sync offline queue when network recovers
+  useEffect(() => {
+    const trySync = async () => {
+      const q = queueGet();
+      if (q.length === 0) return;
+      const synced = await syncOfflineQueue(SUPABASE_URL, SUPABASE_KEY);
+      if (synced > 0) {
+        setOfflineQueue(queueGet().length);
+        // show subtle toast only if logged in
+        if (EMPLOYEE) console.log(`✅ ${synced} offline record(s) synced`);
+      }
+    };
+    window.addEventListener("online", trySync);
+    trySync(); // also try on mount
+    return () => window.removeEventListener("online", trySync);
+  }, []);
 
   // Load employees + projects from Supabase on mount
   useEffect(() => {
@@ -964,7 +1010,12 @@ export default function App() {
           setEmployees(mapped);
         }
         // Always use EMPLOYEE_DB as login fallback (merged with Supabase)
-        if (projs.length > 0) setProjects(projs.map(p => p.name));
+        if (projs.length > 0) setProjects(projs.map(p => ({
+          name: p.name,
+          id: p.id,
+          lat: p.site_lat || null,
+          lng: p.site_lng || null,
+        })));
         setDbReady(true);
       } catch(e) {
         console.log("Using demo data:", e);
@@ -1040,14 +1091,17 @@ function MainApp({ user, onLogout, projects = [] }) {
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
   const [clockTick, setClockTick] = useState(new Date());
-  const [isInZone, setIsInZone] = useState(true);
+  const [isInZone, setIsInZone] = useState(null);       // null=unknown, true=inside, false=outside
   const [gpsWatching, setGpsWatching] = useState(false);
+  const [gpsError, setGpsError] = useState(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState(null);
+  const [userLat, setUserLat] = useState(null);
+  const [userLng, setUserLng] = useState(null);
+  const [distToSite, setDistToSite] = useState(null);    // metres
   const [autoCheckoutTime] = useState("19:00");
   const AUTO_CHECKOUT_HOUR = 19;
   const AUTO_CHECKOUT_MIN = 0;
-  const SITE_LAT = 22.3193;
-  const SITE_LNG = 114.1694;
-  const ZONE_RADIUS = 150;
+  const ZONE_RADIUS = 200; // metres — slightly generous for HK urban GPS drift
 
   // Progress state
   const [selectedPct, setSelectedPct] = useState(null);
@@ -1087,33 +1141,58 @@ function MainApp({ user, onLogout, projects = [] }) {
     }
   }, [clockTick, checkedIn, checkedOut]);
 
-  // Real-time GPS zone detection when app is open
-  useEffect(() => {
-    if (!checkedIn || checkedOut) return;
-    if (!navigator.geolocation) return;
+  // ── Live GPS monitoring ─────────────────────────────────────────────────
+  // selectedProject is either a string (name only) or object {name,lat,lng}
+  const siteLat = selectedProject?.lat || null;
+  const siteLng = selectedProject?.lng || null;
+  const siteName = selectedProject?.name || (typeof selectedProject === "string" ? selectedProject : "");
 
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setGpsError("此裝置不支援 GPS 定位");
+      return;
+    }
+    // Always watch position when on GPS screen (or checked in)
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        const dist = getDistance(pos.coords.latitude, pos.coords.longitude, SITE_LAT, SITE_LNG);
-        const inZone = dist <= ZONE_RADIUS;
-        setIsInZone(inZone);
+        const { latitude, longitude, accuracy } = pos.coords;
+        setUserLat(latitude);
+        setUserLng(longitude);
+        setGpsAccuracy(Math.round(accuracy));
+        setGpsError(null);
         setGpsWatching(true);
 
-        // Auto sign out when leaving zone
-        if (!inZone && checkedIn && !checkedOut) {
-          const now = new Date();
-          const t = now.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
-          setCheckedOut(true);
-          setCheckOutTime(t + " （GPS 自動）");
-          showToast("📍 已離開工地範圍，系統自動簽退");
+        // Only compute zone if site has coordinates
+        if (siteLat && siteLng) {
+          const dist = getDistance(latitude, longitude, siteLat, siteLng);
+          setDistToSite(Math.round(dist));
+          const inZone = dist <= ZONE_RADIUS;
+          setIsInZone(inZone);
+
+          // Auto sign out if leaves zone after check-in
+          if (!inZone && checkedIn && !checkedOut) {
+            const t = new Date().toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
+            setCheckedOut(true);
+            setCheckOutTime(t + " （GPS 離開範圍）");
+            showToast("📍 已離開工地範圍，系統自動記錄簽退");
+          }
+        } else {
+          // No site coords — zone check disabled
+          setIsInZone(null);
+          setDistToSite(null);
         }
       },
-      (err) => { setGpsWatching(false); },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      (err) => {
+        setGpsWatching(false);
+        if (err.code === 1) setGpsError("GPS 定位被拒絕，請喺設定允許位置權限");
+        else if (err.code === 2) setGpsError("無法取得定位，請確保 GPS 已開啟");
+        else setGpsError("定位逾時，請重試");
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [checkedIn, checkedOut]);
+  }, [checkedIn, checkedOut, siteLat, siteLng]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -1127,11 +1206,11 @@ function MainApp({ user, onLogout, projects = [] }) {
   const absentDays = ATTENDANCE_DATA.filter(d => d.status === "absent").length;
 
   const NAV = [
-    { id: "home", icon: "🏠", label: "主頁" },
+    { id: "home",      icon: "🏠", label: "主頁" },
     { id: "workorder", icon: "📋", label: "申報" },
-    { id: "gps", icon: "📍", label: "簽到" },
-    { id: "progress", icon: "📷", label: "進度" },
-    { id: "salary", icon: "💰", label: "薪酬" },
+    { id: "gps",       icon: "📍", label: "簽到" },
+    { id: "docs",      icon: "📁", label: "文件" },
+    { id: "salary",    icon: "💰", label: "薪酬" },
   ];
 
   // ── Screens ────────────────────────────────────
@@ -1161,17 +1240,17 @@ function MainApp({ user, onLogout, projects = [] }) {
           <div className="action-label">GPS 簽到</div>
           <div className="action-sub">{checkedIn ? `✓ ${checkInTime}` : "未簽到"}</div>
         </div>
-        <div className="action-btn blue-accent" onClick={() => setScreen("progress")}>
-          <div className="action-status" style={{ background: progressSubmitted ? "#22C55E" : "#6B7180", boxShadow: progressSubmitted ? "0 0 6px #22C55E" : "none" }} />
-          <div className="action-icon">📷</div>
-          <div className="action-label">上傳進度</div>
-          <div className="action-sub">{progressSubmitted ? `✓ ${selectedPct}% 已提交` : "未提交"}</div>
+        <div className="action-btn blue-accent" onClick={() => setScreen("docs")}>
+          <div className="action-status none" />
+          <div className="action-icon">📁</div>
+          <div className="action-label">上傳文件</div>
+          <div className="action-sub">綠卡/ID/住址</div>
         </div>
         <div className="action-btn yellow-accent" onClick={() => setScreen("salary")}>
           <div className="action-status none" />
           <div className="action-icon">💰</div>
           <div className="action-label">我的薪酬</div>
-          <div className="action-sub">本月 HK$26,400</div>
+          <div className="action-sub">查看詳情</div>
         </div>
       </div>
 
@@ -1182,6 +1261,10 @@ function MainApp({ user, onLogout, projects = [] }) {
           <span className={`info-val ${signed ? "green" : "orange"}`}>{signed ? "✅ 已簽署" : "⏳ 待完成"}</span>
         </div>
         <div className="info-row">
+          <span className="info-key">GPS 定位</span>
+          <span className={`info-val ${gpsWatching ? "green" : "muted"}`}>{gpsWatching ? `✅ 正常 ±${gpsAccuracy||"?"}m` : "未啟動"}</span>
+        </div>
+        <div className="info-row">
           <span className="info-key">簽到時間</span>
           <span className={`info-val ${checkedIn ? "green" : "orange"}`}>{checkedIn ? checkInTime : "未簽到"}</span>
         </div>
@@ -1190,12 +1273,15 @@ function MainApp({ user, onLogout, projects = [] }) {
           <span className={`info-val ${checkedOut ? "green" : "muted"}`}>{checkedOut ? checkOutTime : "–"}</span>
         </div>
         <div className="info-row">
-          <span className="info-key">今日進度回報</span>
-          <span className={`info-val ${progressSubmitted ? "green" : "muted"}`}>{progressSubmitted ? `${selectedPct}%` : "未提交"}</span>
-        </div>
-        <div className="info-row">
           <span className="info-key">本月出勤</span>
           <span className="info-val orange">{presentDays} 天</span>
+        </div>
+        <div className="info-row" style={{ borderBottom:"none" }}>
+          <span className="info-key">🔐 登入 PIN</span>
+          <button onClick={() => setScreen("pin")}
+            style={{ background:"none", border:"1px solid var(--border)", color:"var(--muted)", borderRadius:8, padding:"3px 12px", fontSize:12, cursor:"pointer", fontFamily:"var(--font)" }}>
+            更改 PIN
+          </button>
         </div>
       </div>
     </>
@@ -1332,42 +1418,117 @@ function MainApp({ user, onLogout, projects = [] }) {
   };
 
   const GpsScreen = () => {
+    // Projects can be strings (name only) or objects {name, lat, lng}
     const SITE_LIST = projects.length > 0 ? projects : [
       "EC-590大圓街GDS數據中心升降機", "EC-662柴灣VTC", "EC-550屯門橋機",
       "EC-547將軍澳政府聯用辦工大樓", "EC-530西灣河綜合大樓",
       "EC-540柴灣政府綜合大樓", "EC-591 CUHK LAB",
       "EC-617柴灣政府物料營運中心", "EC-621成運街數據中心", "EC-641永信大廈",
     ];
+    const hasSiteCoords = siteLat && siteLng;
+    const coordStr = userLat && userLng
+      ? `${userLat.toFixed(5)}°N  ${userLng.toFixed(5)}°E`
+      : "定位中...";
 
     const handleCheckIn = async () => {
       if (!selectedProject) { showToast("⚠️ 請先選擇今日工地", "error"); return; }
-      const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
-      setCheckedIn(true); setCheckInTime(t);
-      showToast("📍 簽到成功！");
-      try {
-        await sbInsert("attendance", {
-          employee_id: EMPLOYEE.id,
-          date: new Date().toISOString().split("T")[0],
-          check_in: new Date().toISOString(),
-          status: "present",
-          site: selectedProject
-        });
-      } catch(e) {}
+      if (!navigator.geolocation) { showToast("⚠️ 此裝置不支援 GPS", "error"); return; }
+
+      showToast("📡 正在取得 GPS 位置...", "info");
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const { latitude, longitude, accuracy } = pos.coords;
+          setUserLat(latitude);
+          setUserLng(longitude);
+          setGpsAccuracy(Math.round(accuracy));
+          setGpsWatching(true);
+          setGpsError(null);
+
+          // Check zone if site has coords
+          const sn = typeof selectedProject === "object" ? selectedProject.name : selectedProject;
+          const sl = typeof selectedProject === "object" ? selectedProject.lat : null;
+          const sg = typeof selectedProject === "object" ? selectedProject.lng : null;
+
+          if (sl && sg) {
+            const dist = getDistance(latitude, longitude, sl, sg);
+            setDistToSite(Math.round(dist));
+            setIsInZone(dist <= ZONE_RADIUS);
+          }
+
+          const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
+          setCheckedIn(true); setCheckInTime(t);
+          showToast(`📍 簽到成功！精確度 ±${Math.round(accuracy)}m`);
+
+          const attendanceRow = {
+            employee_id: EMPLOYEE.id,
+            date: new Date().toISOString().split("T")[0],
+            check_in: new Date().toISOString(),
+            check_in_lat: latitude,
+            check_in_lng: longitude,
+            check_in_accuracy: Math.round(accuracy),
+            status: "present",
+            site: sn
+          };
+          try {
+            await sbInsert("attendance", attendanceRow);
+          } catch(e) {
+            // No network — queue locally
+            queueAdd({ ...attendanceRow, _table: "attendance", _method: "INSERT" });
+            setOfflineQueue(q => q + 1);
+            showToast("📵 無網絡，已本地儲存，網絡恢復後自動同步");
+          }
+        },
+        (err) => {
+          if (err.code === 1) showToast("❌ 請喺設定開啟位置權限", "error");
+          else if (err.code === 2) showToast("❌ 無法取得 GPS，請確保開啟位置服務", "error");
+          else showToast("❌ GPS 逾時，請重試", "error");
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      );
     };
 
     const handleCheckOut = async () => {
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
-      setCheckedOut(true); setCheckOutTime(t);
-      showToast("👋 簽退完成！");
-      try {
-        const today = new Date().toISOString().split("T")[0];
-        const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/attendance?employee_id=eq.${EMPLOYEE.id}&date=eq.${today}&order=created_at.desc&limit=1`,
-          { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+
+      // Optionally grab fresh GPS on checkout
+      const doCheckout = async (outLat, outLng, outAcc) => {
+        setCheckedOut(true); setCheckOutTime(t);
+        showToast("👋 簽退完成！");
+        const checkOutData = {
+          check_out: new Date().toISOString(),
+          check_out_lat: outLat,
+          check_out_lng: outLng,
+          check_out_accuracy: outAcc,
+        };
+        try {
+          const today = new Date().toISOString().split("T")[0];
+          const res = await fetch(
+            `${SUPABASE_URL}/rest/v1/attendance?employee_id=eq.${EMPLOYEE.id}&date=eq.${today}&order=created_at.desc&limit=1`,
+            { headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` } }
+          );
+          const rows = await res.json();
+          if (rows.length > 0) {
+            await sbUpdate("attendance", rows[0].id, checkOutData);
+          }
+        } catch(e) {
+          // Queue for later sync — store with a best-guess date key
+          queueAdd({ ...checkOutData, _table: "attendance", _method: "PATCH_CHECKOUT",
+            employee_id: EMPLOYEE.id, date: new Date().toISOString().split("T")[0] });
+          setOfflineQueue(q => q + 1);
+          showToast("📵 無網絡，簽退已本地儲存，網絡恢復後自動同步");
+        }
+      };
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => doCheckout(pos.coords.latitude, pos.coords.longitude, Math.round(pos.coords.accuracy)),
+          () => doCheckout(userLat, userLng, gpsAccuracy), // fallback to last known
+          { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
         );
-        const rows = await res.json();
-        if (rows.length > 0) await sbUpdate("attendance", rows[0].id, { check_out: new Date().toISOString() });
-      } catch(e) {}
+      } else {
+        doCheckout(userLat, userLng, gpsAccuracy);
+      }
     };
 
     return (
@@ -1382,16 +1543,38 @@ function MainApp({ user, onLogout, projects = [] }) {
           <>
             <div className="section-label">今日工地 *</div>
             <select
-              defaultValue={selectedProjectRef.current}
+              defaultValue={typeof selectedProjectRef.current === "object" ? selectedProjectRef.current?.name : selectedProjectRef.current}
               onChange={e => {
-                selectedProjectRef.current = e.target.value;
-                setSelectedProjectState(e.target.value);
+                const val = e.target.value;
+                // Find matching project object (may have coords)
+                const match = SITE_LIST.find(p => (typeof p === "object" ? p.name : p) === val);
+                const proj = match || val;
+                selectedProjectRef.current = proj;
+                setSelectedProjectState(proj);
+                setDistToSite(null);
+                setIsInZone(null);
               }}
               style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${selectedProject?"var(--orange)":"var(--border)"}`, color:selectedProject?"var(--text)":"var(--muted)", borderRadius:14, padding:"14px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:16, fontWeight:600 }}
             >
               <option value="">── 選擇今日工地 ──</option>
-              {SITE_LIST.map((p,i) => <option key={i} value={p}>{p}</option>)}
+              {SITE_LIST.map((p,i) => {
+                const name = typeof p === "object" ? p.name : p;
+                const hasCoords = typeof p === "object" && p.lat && p.lng;
+                return <option key={i} value={name}>{hasCoords ? "📍 " : ""}{name}</option>;
+              })}
             </select>
+            {hasSiteCoords && !gpsWatching && !gpsError && (
+              <div style={{ fontSize:11, color:"var(--muted)", marginBottom:12, display:"flex", gap:6, alignItems:"center" }}>
+                <span style={{ color:"var(--green)" }}>✓</span>
+                工地已設定 GPS 座標，簽到後自動驗證位置
+              </div>
+            )}
+            {selectedProject && !hasSiteCoords && (
+              <div style={{ fontSize:11, color:"var(--orange)", marginBottom:12, display:"flex", gap:6, alignItems:"center" }}>
+                <span>⚠️</span>
+                此工地未設定 GPS 座標（管理員可在 Admin 系統新增），仍可正常簽到
+              </div>
+            )}
           </>
         )}
 
@@ -1405,23 +1588,40 @@ function MainApp({ user, onLogout, projects = [] }) {
           </div>
         )}
 
+        {/* GPS error banner */}
+        {gpsError && (
+          <div style={{ background:"rgba(239,68,68,0.1)", border:"1.5px solid rgba(239,68,68,0.3)", borderRadius:14, padding:"12px 16px", marginBottom:14, display:"flex", gap:10, alignItems:"flex-start" }}>
+            <span style={{ fontSize:20 }}>⚠️</span>
+            <div>
+              <div style={{ fontSize:13, fontWeight:800, color:"var(--red)" }}>GPS 定位問題</div>
+              <div style={{ fontSize:12, color:"var(--muted)", marginTop:2 }}>{gpsError}</div>
+              <div style={{ fontSize:11, color:"var(--muted)", marginTop:4 }}>請喺手機設定 → 私隱 → 位置服務 開啟</div>
+            </div>
+          </div>
+        )}
+
         <div className="map-mock">
           <div className="map-grid-lines" />
-          <div className="map-pulse-ring" />
-          <div className="map-pulse-ring2" />
-          <div className="map-pin" style={{ background: isInZone ? "var(--orange)" : "var(--red)" }} />
-          <div className="map-badge">📍 {selectedProject ? selectedProject.slice(0,14) : "未選工地"}</div>
-          <div className="map-coords">22.3193°N 114.1694°E</div>
-          <div className="inside-badge" style={{ background: isInZone?"rgba(34,197,94,0.15)":"rgba(239,68,68,0.15)", borderColor: isInZone?"var(--green)":"var(--red)", color: isInZone?"var(--green)":"var(--red)" }}>
-            {isInZone ? "✓ 範圍內" : "✗ 範圍外"}
+          {gpsWatching && <><div className="map-pulse-ring" /><div className="map-pulse-ring2" /></>}
+          <div className="map-pin" style={{ background: isInZone === true ? "var(--green)" : isInZone === false ? "var(--red)" : "var(--orange)" }} />
+          <div className="map-badge">📍 {siteName ? siteName.slice(0,16) : "未選工地"}</div>
+          <div className="map-coords" style={{ fontSize:10 }}>
+            {gpsWatching ? coordStr : (gpsError ? "❌ 定位失敗" : "⏳ 等待 GPS...")}
+          </div>
+          <div className="inside-badge" style={{
+            background: isInZone===true?"rgba(34,197,94,0.15)": isInZone===false?"rgba(239,68,68,0.15)":"rgba(255,107,26,0.15)",
+            borderColor: isInZone===true?"var(--green)": isInZone===false?"var(--red)":"var(--orange)",
+            color: isInZone===true?"var(--green)": isInZone===false?"var(--red)":"var(--orange)",
+          }}>
+            {isInZone===true ? "✓ 範圍內" : isInZone===false ? "✗ 範圍外" : hasSiteCoords ? "⏳ 定位中" : "⚪ 無座標"}
           </div>
         </div>
 
-        {checkedIn && !checkedOut && !isInZone && gpsWatching && (
+        {checkedIn && !checkedOut && isInZone === false && gpsWatching && hasSiteCoords && (
           <div style={{ background:"rgba(239,68,68,0.1)", border:"1.5px solid rgba(239,68,68,0.3)", borderRadius:14, padding:"12px 16px", marginBottom:14, display:"flex", gap:10, alignItems:"center" }}>
             <span style={{ fontSize:20 }}>⚠️</span>
             <div>
-              <div style={{ fontSize:13, fontWeight:800, color:"var(--red)" }}>已離開工地範圍！</div>
+              <div style={{ fontSize:13, fontWeight:800, color:"var(--red)" }}>已離開工地範圍！（{distToSite}m 外）</div>
               <div style={{ fontSize:11, color:"var(--muted)", marginTop:2 }}>系統將自動記錄簽退時間</div>
             </div>
           </div>
@@ -1430,12 +1630,32 @@ function MainApp({ user, onLogout, projects = [] }) {
         <div className="info-card" style={{ marginBottom:14 }}>
           <div className="info-row">
             <span className="info-key">定位狀態</span>
-            <span className={`pill ${gpsWatching?"green":"orange"}`}><span className="pill-dot" />{gpsWatching?"GPS 監測中":"模擬定位"}</span>
+            <span className={`pill ${gpsWatching?"green":gpsError?"red":"orange"}`}>
+              <span className="pill-dot" />
+              {gpsWatching ? `GPS ±${gpsAccuracy||"?"}m` : gpsError ? "定位失敗" : "等待GPS..."}
+            </span>
           </div>
-          <div className="info-row">
-            <span className="info-key">工地範圍</span>
-            <span className={`info-val ${isInZone?"green":"red"}`}>{isInZone?"✅ 範圍內（150米）":"❌ 已離開範圍"}</span>
-          </div>
+          {userLat && userLng && (
+            <div className="info-row">
+              <span className="info-key">我的座標</span>
+              <span className="info-val" style={{ color:"var(--blue)", fontSize:11 }}>{userLat.toFixed(5)}, {userLng.toFixed(5)}</span>
+            </div>
+          )}
+          {hasSiteCoords && distToSite !== null && (
+            <div className="info-row">
+              <span className="info-key">距工地</span>
+              <span className={`info-val ${isInZone?"green":"red"}`} style={{ fontWeight:800 }}>
+                {distToSite}m
+                {isInZone===true ? " ✅ 範圍內" : ` ❌ 超出${ZONE_RADIUS}m`}
+              </span>
+            </div>
+          )}
+          {!hasSiteCoords && selectedProject && (
+            <div className="info-row">
+              <span className="info-key">工地座標</span>
+              <span className="info-val" style={{ color:"var(--muted)", fontSize:12 }}>⚠️ 未設定（仍可簽到）</span>
+            </div>
+          )}
           <div className="info-row">
             <span className="info-key">今日簽到</span>
             <span className={`info-val ${checkedIn?"green":"orange"}`}>{checkedIn?checkInTime:"未簽到"}</span>
@@ -1448,6 +1668,21 @@ function MainApp({ user, onLogout, projects = [] }) {
             <span className="info-key">🕖 自動簽退</span>
             <span className="info-val" style={{ color:"var(--blue)" }}>{autoCheckoutTime}</span>
           </div>
+          {offlineQueue > 0 && (
+            <div style={{ margin:"10px 0 0", padding:"8px 12px", background:"rgba(255,107,26,0.08)", borderRadius:10, border:"1px solid rgba(255,107,26,0.2)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <div style={{ fontSize:12, color:"var(--orange)" }}>
+                📵 {offlineQueue} 條記錄等待同步
+              </div>
+              <button onClick={async () => {
+                const n = await syncOfflineQueue(SUPABASE_URL, SUPABASE_KEY);
+                setOfflineQueue(queueGet().length);
+                if (n > 0) showToast(`✅ 已同步 ${n} 條記錄！`);
+                else showToast("⚠️ 仍然無網絡，請稍後再試", "error");
+              }} style={{ background:"var(--orange)", border:"none", color:"#0d0f12", borderRadius:8, padding:"4px 12px", fontSize:12, fontWeight:700, cursor:"pointer", fontFamily:"var(--font)" }}>
+                立即同步
+              </button>
+            </div>
+          )}
         </div>
 
         {checkedIn && !checkedOut && (
@@ -1457,9 +1692,13 @@ function MainApp({ user, onLogout, projects = [] }) {
         )}
 
         {!checkedIn ? (
-          <button className={`big-btn ${selectedProject?"primary":"disabled"}`} onClick={handleCheckIn}>
-            <span className="big-btn-icon">📍</span>
-            {selectedProject?"立即簽到":"請先選擇工地"}
+          <button
+            className={`big-btn ${selectedProject && !gpsError?"primary":"disabled"}`}
+            onClick={handleCheckIn}
+            disabled={!selectedProject}
+          >
+            <span className="big-btn-icon">{gpsError?"❌":gpsWatching?"📍":"⏳"}</span>
+            {!selectedProject ? "請先選擇工地" : gpsError ? "GPS 定位失敗，請檢查設定" : gpsWatching ? "立即簽到" : "獲取 GPS 中..."}
           </button>
         ) : !checkedOut ? (
           <>
@@ -2215,8 +2454,204 @@ function MainApp({ user, onLogout, projects = [] }) {
     );
   };
 
-  const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, salary: SalaryScreen };
-  const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", workorder: "每日工序申報", salary: "我的薪酬" };
+  // ── 文件上傳 State ───────────────────────────────────────────────────────────
+  const [uploadedDocs, setUploadedDocs] = useState({
+    greencard: null, id: null, address: null, other: []
+  });
+  const [uploadStatus, setUploadStatus] = useState({});
+
+  const DocsScreen = () => {
+    const DOC_TYPES = [
+      { key: "greencard", label: "綠卡（安全卡）", icon: "🟢", desc: "建造業工人安全訓練證書", required: true, emsd: true },
+      { key: "id", label: "香港身份證", icon: "🪪", desc: "HKID 兩面", required: true, emsd: false },
+      { key: "address", label: "住址證明", icon: "🏠", desc: "3個月內銀行信件或政府信件", required: true, emsd: false },
+      { key: "license", label: "升降機技工牌照", icon: "📜", desc: "機電署發出之註冊技工牌照", required: false, emsd: true },
+      { key: "medical", label: "體格檢查證明", icon: "🏥", desc: "高空工作體格檢查", required: false, emsd: false },
+    ];
+
+    const handleFileSelect = async (key, file) => {
+      if (!file) return;
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) { showToast("⚠️ 檔案太大，請上傳 10MB 以下", "error"); return; }
+
+      setUploadStatus(prev => ({ ...prev, [key]: "uploading" }));
+
+      try {
+        // Convert to base64 for storage
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const base64 = e.target.result;
+          // Save to Supabase
+          try {
+            await sbInsert("employee_docs", {
+              employee_id: EMPLOYEE.id,
+              doc_type: key,
+              file_name: file.name,
+              file_data: base64,   // full base64 for admin PDF export
+              file_size: file.size,
+              uploaded_at: new Date().toISOString(),
+            });
+          } catch(e) { console.log("doc save err:", e); }
+          setUploadedDocs(prev => ({ ...prev, [key]: { name: file.name, size: file.size, date: new Date().toLocaleDateString("zh-HK") } }));
+          setUploadStatus(prev => ({ ...prev, [key]: "done" }));
+          showToast(`✅ ${DOC_TYPES.find(d=>d.key===key)?.label} 上傳成功！`);
+        };
+        reader.readAsDataURL(file);
+      } catch(e) {
+        setUploadStatus(prev => ({ ...prev, [key]: "error" }));
+        showToast("❌ 上傳失敗，請重試", "error");
+      }
+    };
+
+    const completedCount = DOC_TYPES.filter(d => uploadedDocs[d.key]).length;
+    const requiredCount = DOC_TYPES.filter(d => d.required).length;
+    const requiredDone = DOC_TYPES.filter(d => d.required && uploadedDocs[d.key]).length;
+
+    return (
+      <>
+        {/* Progress */}
+        <div style={{ background:"var(--surface)", borderRadius:16, padding:"16px", marginBottom:16 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <div style={{ fontSize:15, fontWeight:800, color:"var(--text)" }}>文件上傳進度</div>
+            <div style={{ fontSize:13, color: requiredDone===requiredCount?"var(--green)":"var(--orange)", fontWeight:700 }}>
+              {requiredDone}/{requiredCount} 必要文件
+            </div>
+          </div>
+          <div style={{ background:"rgba(255,255,255,0.08)", borderRadius:8, height:8, overflow:"hidden" }}>
+            <div style={{ height:"100%", background: requiredDone===requiredCount?"var(--green)":"var(--orange)", width:`${(requiredDone/requiredCount)*100}%`, borderRadius:8, transition:"width 0.3s" }} />
+          </div>
+          <div style={{ fontSize:12, color:"var(--muted)", marginTop:6 }}>
+            ⚠️ 根據《升降機及自動梯條例》，所有員工須持有有效安全訓練證書
+          </div>
+        </div>
+
+        {/* Document list */}
+        {DOC_TYPES.map(doc => {
+          const uploaded = uploadedDocs[doc.key];
+          const status = uploadStatus[doc.key];
+          return (
+            <div key={doc.key} style={{ background:"var(--surface)", border:`1.5px solid ${uploaded?"var(--green)":doc.required?"rgba(255,107,26,0.3)":"var(--border)"}`, borderRadius:16, padding:"14px 16px", marginBottom:12 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:8 }}>
+                <span style={{ fontSize:28 }}>{doc.icon}</span>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                    <div style={{ fontSize:15, fontWeight:800, color:"var(--text)" }}>{doc.label}</div>
+                    {doc.required && <span style={{ fontSize:11, color:"var(--red)", fontWeight:700 }}>必須</span>}
+                    {doc.emsd && <span style={{ fontSize:11, color:"var(--blue)", fontWeight:700 }}>EMSD</span>}
+                  </div>
+                  <div style={{ fontSize:13, color:"var(--muted)", marginTop:2 }}>{doc.desc}</div>
+                </div>
+                {uploaded && <span style={{ fontSize:20 }}>✅</span>}
+              </div>
+
+              {uploaded ? (
+                <div style={{ background:"rgba(34,197,94,0.08)", borderRadius:10, padding:"10px 12px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div>
+                    <div style={{ fontSize:13, fontWeight:700, color:"var(--green)" }}>✓ 已上傳</div>
+                    <div style={{ fontSize:12, color:"var(--muted)" }}>{uploaded.name} · {uploaded.date}</div>
+                  </div>
+                  <label style={{ background:"var(--surface2)", border:"none", color:"var(--muted)", borderRadius:8, padding:"6px 12px", fontSize:12, cursor:"pointer", fontFamily:"var(--font)" }}>
+                    重新上傳
+                    <input type="file" accept="image/*,.pdf" style={{ display:"none" }} onChange={e => handleFileSelect(doc.key, e.target.files[0])} />
+                  </label>
+                </div>
+              ) : (
+                <label style={{ display:"block", background: status==="uploading"?"rgba(255,107,26,0.1)":"var(--surface2)", border:`1.5px dashed ${doc.required?"var(--orange)":"var(--border)"}`, borderRadius:10, padding:"14px", textAlign:"center", cursor:"pointer" }}>
+                  <div style={{ fontSize:24, marginBottom:4 }}>{status==="uploading"?"⏳":"📤"}</div>
+                  <div style={{ fontSize:14, fontWeight:700, color: doc.required?"var(--orange)":"var(--muted)" }}>
+                    {status==="uploading"?"上傳中...":"點擊上傳"}
+                  </div>
+                  <div style={{ fontSize:12, color:"var(--muted)", marginTop:2 }}>支援圖片 / PDF，上限 10MB</div>
+                  <input type="file" accept="image/*,.pdf" style={{ display:"none" }} onChange={e => handleFileSelect(doc.key, e.target.files[0])} disabled={status==="uploading"} />
+                </label>
+              )}
+            </div>
+          );
+        })}
+
+        <div style={{ background:"rgba(96,165,250,0.08)", border:"1px solid rgba(96,165,250,0.2)", borderRadius:14, padding:"12px 16px", fontSize:13, color:"var(--muted)", lineHeight:1.7 }}>
+          <div style={{ fontWeight:800, color:"var(--blue)", marginBottom:4 }}>📋 注意事項</div>
+          <div>• 文件只供公司存檔，不會對外披露</div>
+          <div>• 綠卡須定期更新，到期前30日系統會提醒</div>
+          <div>• 老闆可透過管理系統下載你的文件 PDF</div>
+        </div>
+      </>
+    );
+  };
+
+
+  // ── PIN Change Screen ──────────────────────────────────────────────────────
+  const PinScreen = () => {
+    const [oldPin, setOldPin] = useState("");
+    const [newPin, setNewPin] = useState("");
+    const [confirmPin, setConfirmPin] = useState("");
+    const [saving, setSaving] = useState(false);
+    const [show, setShow] = useState({ old:false, new:false, confirm:false });
+
+    const handleChange = async () => {
+      if (oldPin !== EMPLOYEE.pin) { showToast("❌ 舊 PIN 不正確", "error"); return; }
+      if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) { showToast("⚠️ 新 PIN 必須係 4 位數字", "error"); return; }
+      if (newPin !== confirmPin) { showToast("❌ 兩次 PIN 不一致", "error"); return; }
+      if (newPin === oldPin) { showToast("⚠️ 新 PIN 不可以同舊 PIN 一樣", "error"); return; }
+      setSaving(true);
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/employees?id=eq.${EMPLOYEE.id}`, {
+          method: "PATCH",
+          headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ pin: newPin })
+        });
+        EMPLOYEE.pin = newPin; // update local session
+        showToast("✅ PIN 已成功更改！");
+        setOldPin(""); setNewPin(""); setConfirmPin("");
+      } catch(e) {
+        showToast("❌ 更改失敗，請重試", "error");
+      }
+      setSaving(false);
+    };
+
+    return (
+      <>
+        <div className="section-label" style={{ marginTop:0 }}>更改登入 PIN 碼</div>
+        <div style={{ background:"rgba(96,165,250,0.06)", border:"1px solid rgba(96,165,250,0.15)", borderRadius:14, padding:"12px 16px", marginBottom:20, fontSize:13, color:"var(--muted)", lineHeight:1.6 }}>
+          <div style={{ fontWeight:800, color:"var(--blue)", marginBottom:2 }}>🔐 安全提示</div>
+          <div>• PIN 只有你本人知道，請勿告訴他人</div>
+          <div>• 老闆可以在管理系統重設你的 PIN</div>
+        </div>
+
+        {[
+          { label:"舊 PIN", val:oldPin, set:setOldPin, key:"old" },
+          { label:"新 PIN（4位數字）", val:newPin, set:setNewPin, key:"new" },
+          { label:"確認新 PIN", val:confirmPin, set:setConfirmPin, key:"confirm" },
+        ].map(f => (
+          <div key={f.key} style={{ marginBottom:16 }}>
+            <div className="section-label" style={{ marginTop:0, marginBottom:8 }}>{f.label}</div>
+            <div style={{ display:"flex", gap:8 }}>
+              <input
+                type={show[f.key]?"text":"password"}
+                maxLength={4}
+                value={f.val}
+                onChange={e => f.set(e.target.value.replace(/\D/g,""))}
+                placeholder="••••"
+                style={{ flex:1, background:"var(--surface)", border:"1.5px solid var(--border)", color:"var(--text)", borderRadius:14, padding:"14px 16px", fontSize:22, fontWeight:800, fontFamily:"var(--font)", letterSpacing:8, textAlign:"center" }}
+              />
+              <button onClick={() => setShow(s => ({...s,[f.key]:!s[f.key]}))}
+                style={{ background:"var(--surface)", border:"1px solid var(--border)", color:"var(--muted)", borderRadius:12, padding:"0 14px", fontSize:20, cursor:"pointer" }}>
+                {show[f.key]?"🙈":"👁️"}
+              </button>
+            </div>
+          </div>
+        ))}
+
+        <button className={`big-btn ${oldPin&&newPin&&confirmPin?"primary":"disabled"}`} onClick={handleChange} disabled={saving||!oldPin||!newPin||!confirmPin}>
+          <span className="big-btn-icon">🔐</span>
+          {saving ? "儲存中..." : "確認更改 PIN"}
+        </button>
+      </>
+    );
+  };
+
+  const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, docs: DocsScreen, salary: SalaryScreen, pin: PinScreen };
+  const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", workorder: "每日工序申報", docs: "文件上傳", salary: "我的薪酬", pin: "更改 PIN 碼" };
   const ActiveScreen = screens[screen];
 
   return (
