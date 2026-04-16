@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+1import React, { useState, useEffect, useRef } from "react";
 
 // ─── SUPABASE CLIENT ─────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://fyxvejnvzflxppqrhlzt.supabase.co";
@@ -1109,6 +1109,7 @@ function MainApp({ user, onLogout, projects = [] }) {
   const [photos, setPhotos] = useState([]);
   const [progressSubmitted, setProgressSubmitted] = useState(false);
   const [progressSaving, setProgressSaving] = useState(false);
+  const [progressStageDesc, setProgressStageDesc] = useState("");
 
   // Salary view
   const [salaryMonth, setSalaryMonth] = useState(0);
@@ -1240,11 +1241,11 @@ function MainApp({ user, onLogout, projects = [] }) {
           <div className="action-label">GPS 簽到</div>
           <div className="action-sub">{checkedIn ? `✓ ${checkInTime}` : "未簽到"}</div>
         </div>
-        <div className="action-btn blue-accent" onClick={() => setScreen("docs")}>
-          <div className="action-status none" />
-          <div className="action-icon">📁</div>
-          <div className="action-label">上傳文件</div>
-          <div className="action-sub">綠卡/ID/住址</div>
+        <div className="action-btn blue-accent" onClick={() => setScreen("progress")}>
+          <div className="action-status" style={{ background: progressSubmitted ? "#22C55E" : "#FF6B1A", boxShadow: progressSubmitted ? "0 0 6px #22C55E" : "0 0 6px #FF6B1A" }} />
+          <div className="action-icon">📊</div>
+          <div className="action-label">上傳進度</div>
+          <div className="action-sub">{progressSubmitted ? "✓ 今日已提交" : "回報施工進度"}</div>
         </div>
         <div className="action-btn yellow-accent" onClick={() => setScreen("salary")}>
           <div className="action-status none" />
@@ -1252,6 +1253,43 @@ function MainApp({ user, onLogout, projects = [] }) {
           <div className="action-label">我的薪酬</div>
           <div className="action-sub">查看詳情</div>
         </div>
+      </div>
+
+      <div className="section-label">我的文件 <span style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", marginLeft: 6, textTransform: "none", letterSpacing: 0 }}>（一次性設置）</span></div>
+      <div className="info-card" onClick={() => setScreen("docs")} style={{ cursor: "pointer", marginBottom: 16 }}>
+        {expiringDocs.length > 0 ? (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0 10px", borderBottom: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 24 }}>⚠️</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "var(--orange)" }}>
+                  {expiringDocs.length} 份文件即將到期
+                </div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                  請盡早續期以免影響工作
+                </div>
+              </div>
+            </div>
+            {expiringDocs.slice(0, 3).map((d, i) => (
+              <div key={i} className="info-row" style={{ padding: "8px 0", borderBottom: i < Math.min(2, expiringDocs.length - 1) ? "1px solid var(--border)" : "none" }}>
+                <span className="info-key" style={{ fontSize: 13 }}>{d.icon} {d.label}</span>
+                <span className="info-val" style={{ color: d.daysLeft <= 30 ? "var(--red)" : "var(--orange)", fontSize: 12 }}>
+                  {d.daysLeft <= 0 ? "❌ 已過期" : `⏳ ${d.daysLeft} 日後到期`}
+                </span>
+              </div>
+            ))}
+          </>
+        ) : (
+          <div className="info-row" style={{ borderBottom: "none", padding: "4px 0" }}>
+            <span className="info-key" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 22 }}>📁</span>
+              <span>文件存檔</span>
+            </span>
+            <span className="info-val" style={{ color: docsAllSet ? "var(--green)" : "var(--orange)" }}>
+              {docsAllSet ? `✅ ${docsCompletedCount}/4 已完成` : `📤 ${docsCompletedCount}/4 待補交`}
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="section-label">今日狀態</div>
@@ -1350,7 +1388,7 @@ function MainApp({ user, onLogout, projects = [] }) {
             <span style={{ fontSize: 20 }}>🏗️</span>
             <div>
               <div style={{ fontSize: 11, color: "var(--orange)", fontWeight: 700, marginBottom: 2 }}>今日工程</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>{selectedProject}</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>{siteName}</div>
             </div>
           </div>
         )}
@@ -1393,7 +1431,7 @@ function MainApp({ user, onLogout, projects = [] }) {
           <div className="sign-area signed">
             <div style={{ fontSize: 28 }}>✅</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>已於 {signedTime} 完成簽署</div>
-            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>工程：{selectedProject}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>工程：{siteName}</div>
             <div style={{ fontSize: 11, color: "var(--muted)" }}>時間戳記已記錄至系統</div>
           </div>
         ) : (
@@ -1583,7 +1621,7 @@ function MainApp({ user, onLogout, projects = [] }) {
             <span style={{ fontSize:20 }}>📍</span>
             <div>
               <div style={{ fontSize:11, color:"var(--muted)" }}>今日工地</div>
-              <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{selectedProject}</div>
+              <div style={{ fontSize:14, fontWeight:800, color:"var(--green)" }}>{siteName}</div>
             </div>
           </div>
         )}
@@ -1714,7 +1752,7 @@ function MainApp({ user, onLogout, projects = [] }) {
             <div style={{ fontSize:36, marginBottom:8 }}>✅</div>
             <div style={{ fontSize:15, fontWeight:800, color:"var(--green)", marginBottom:4 }}>今日考勤完成</div>
             <div style={{ fontSize:12, color:"var(--muted)" }}>簽到 {checkInTime} · 簽退 {checkOutTime}</div>
-            <div style={{ fontSize:12, color:"var(--orange)", marginTop:4 }}>{selectedProject}</div>
+            <div style={{ fontSize:12, color:"var(--orange)", marginTop:4 }}>{siteName}</div>
           </div>
         )}
       </>
@@ -1722,7 +1760,12 @@ function MainApp({ user, onLogout, projects = [] }) {
   };
 
   const ProgressScreen = () => {
-    const [stageDesc, setStageDesc] = useState("");
+    // stageDesc lifted to MainApp scope (progressStageDesc) to prevent
+    // the same flicker bug PinScreen had: defining useState locally inside
+    // a screen that's re-created every MainApp render reset its state on
+    // every keystroke, blanking the page mid-interaction.
+    const stageDesc = progressStageDesc;
+    const setStageDesc = setProgressStageDesc;
 
     const selectStage = (p, desc) => {
       setSelectedPct(p);
@@ -1743,7 +1786,7 @@ function MainApp({ user, onLogout, projects = [] }) {
       try {
         await sbInsert("progress_reports", {
           employee_id: EMPLOYEE.id,
-          project: selectedProject || EMPLOYEE.site || "",
+          project: siteName || EMPLOYEE.site || "",
           progress_pct: Number(selectedPct),
           note: note,
           submitted_at: new Date().toISOString()
@@ -1997,11 +2040,6 @@ function MainApp({ user, onLogout, projects = [] }) {
           </div>
           <div className="salary-divider" />
           <div className="salary-row-inner">
-            <span className="salary-row-label">🧮 基本薪酬</span>
-            <span className="salary-row-val">HK${cur.amount.toLocaleString()}</span>
-          </div>
-          <div className="salary-divider" />
-          <div className="salary-row-inner">
             <span className="salary-row-label">🏦 MPF 員工供款</span>
             <span className="salary-row-val deduct">
               {isExempt ? "豁免（月薪低於$7,100）" : `-HK$${empMpfAmount.toLocaleString()}`}
@@ -2042,34 +2080,19 @@ function MainApp({ user, onLogout, projects = [] }) {
           </div>
         </div>
 
-        <div className="divider" />
-        <div className="section-label">發薪記錄</div>
-        {SALARY_HISTORY.map((s, i) => {
-          const mpf = isExempt ? 0 : empMpfAmount;
-          const takeHome = s.amount - mpf;
-          return (
-            <div key={i} className="info-card" style={{ marginBottom: 10 }}>
-              <div className="info-row" style={{ padding: "8px 0" }}>
-                <div>
-                  <div className="info-val" style={{ fontSize: 14, textAlign: "left" }}>{s.month}</div>
-                  <div className="info-key" style={{ marginTop: 2 }}>
-                    {s.days} 天 × HK${EMPLOYEE.rate} — MPF HK${mpf}
-                  </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div className="info-val green" style={{ marginBottom: 4 }}>HK${takeHome.toLocaleString()}</div>
-                  <span className={`pill ${s.status === "paid" ? "green" : "orange"}`} style={{ fontSize: 11 }}>
-                    <span className="pill-dot" />
-                    {s.status === "paid" ? "已發放" : "待發放"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        <div style={{ background: "rgba(96,165,250,0.05)", border: "1px dashed rgba(96,165,250,0.2)", borderRadius: 14, padding: "14px 16px", marginTop: 16, fontSize: 12, color: "var(--muted)", textAlign: "center", lineHeight: 1.6 }}>
+          📋 發薪記錄將於系統正式上線後啟用
+        </div>
       </>
     );
   };
+
+  // ── PIN Change State (moved to MainApp to prevent input flicker) ──────────
+  const [pinOld, setPinOld] = useState("");
+  const [pinNew, setPinNew] = useState("");
+  const [pinConfirm, setPinConfirm] = useState("");
+  const [pinSaving, setPinSaving] = useState(false);
+  const [pinShow, setPinShow] = useState({ old: false, new: false, confirm: false });
 
   // ── 每日工序安全申報 State (moved to MainApp to prevent re-render reset) ────
   const [workOrderSubmitted, setWorkOrderSubmitted] = useState(false);
@@ -2459,14 +2482,63 @@ function MainApp({ user, onLogout, projects = [] }) {
     greencard: null, id: null, address: null, other: []
   });
   const [uploadStatus, setUploadStatus] = useState({});
+  const [docExpiry, setDocExpiry] = useState({});
+
+  // Pre-load existing docs from Supabase to populate expiry warnings on home
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`${SUPABASE_URL}/rest/v1/employee_docs?employee_id=eq.${user.id}&order=uploaded_at.desc`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (!Array.isArray(d)) return;
+        const docMap = {};
+        const expMap = {};
+        d.forEach(row => {
+          if (!docMap[row.doc_type]) {
+            docMap[row.doc_type] = {
+              name: row.file_name,
+              size: row.file_size,
+              date: row.uploaded_at ? new Date(row.uploaded_at).toLocaleDateString("zh-HK") : "",
+              expiry: row.expiry_date,
+            };
+            if (row.expiry_date) expMap[row.doc_type] = row.expiry_date;
+          }
+        });
+        setUploadedDocs(prev => ({ ...prev, ...docMap }));
+        setDocExpiry(expMap);
+      })
+      .catch(() => {});
+  }, [user?.id]);
+
+  // Compute docs expiring within 60 days for home-page warning
+  const DOC_TYPE_META = {
+    greencard:  { label: "綠卡",         icon: "🟢" },
+    id:         { label: "香港身份證",   icon: "🪪" },
+    address:    { label: "住址證明",     icon: "🏠" },
+    license:    { label: "升降機技工牌照", icon: "📜" },
+    other_cert: { label: "其他證明",     icon: "📄" },
+  };
+  const expiringDocs = Object.entries(docExpiry)
+    .map(([key, dateStr]) => {
+      if (!dateStr) return null;
+      const daysLeft = Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+      if (daysLeft > 60) return null; // only warn 0–60 days out
+      return { key, daysLeft, ...DOC_TYPE_META[key] };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+  const docsCompletedCount = ["greencard", "id", "address", "license"].filter(k => uploadedDocs[k]).length;
+  const docsAllSet = docsCompletedCount === 4;
 
   const DocsScreen = () => {
     const DOC_TYPES = [
-      { key: "greencard", label: "綠卡（安全卡）", icon: "🟢", desc: "建造業工人安全訓練證書", required: true, emsd: true },
-      { key: "id", label: "香港身份證", icon: "🪪", desc: "HKID 兩面", required: true, emsd: false },
-      { key: "address", label: "住址證明", icon: "🏠", desc: "3個月內銀行信件或政府信件", required: true, emsd: false },
-      { key: "license", label: "升降機技工牌照", icon: "📜", desc: "機電署發出之註冊技工牌照", required: false, emsd: true },
-      { key: "medical", label: "體格檢查證明", icon: "🏥", desc: "高空工作體格檢查", required: false, emsd: false },
+      { key: "greencard",  label: "綠卡（安全卡）",       icon: "🟢", desc: "建造業工人安全訓練證書（EMSD 要求）", required: true,  emsd: true,  hasExpiry: true },
+      { key: "id",         label: "香港身份證",           icon: "🪪", desc: "HKID 兩面",                          required: true,  emsd: false, hasExpiry: false },
+      { key: "address",    label: "住址證明",             icon: "🏠", desc: "3個月內銀行信件或政府信件",          required: true,  emsd: false, hasExpiry: false },
+      { key: "license",    label: "升降機技工牌照",       icon: "📜", desc: "機電署發出之註冊技工牌照",           required: false, emsd: true,  hasExpiry: true },
+      { key: "other_cert", label: "其他證明",             icon: "📄", desc: "其他專業資格證書 / 培訓證明",        required: false, emsd: false, hasExpiry: true },
     ];
 
     const handleFileSelect = async (key, file) => {
@@ -2477,22 +2549,22 @@ function MainApp({ user, onLogout, projects = [] }) {
       setUploadStatus(prev => ({ ...prev, [key]: "uploading" }));
 
       try {
-        // Convert to base64 for storage
         const reader = new FileReader();
         reader.onload = async (e) => {
           const base64 = e.target.result;
-          // Save to Supabase
+          const expiry = docExpiry[key] || null; // optional expiry date
           try {
             await sbInsert("employee_docs", {
               employee_id: EMPLOYEE.id,
               doc_type: key,
               file_name: file.name,
-              file_data: base64,   // full base64 for admin PDF export
+              file_data: base64,
               file_size: file.size,
+              expiry_date: expiry,
               uploaded_at: new Date().toISOString(),
             });
           } catch(e) { console.log("doc save err:", e); }
-          setUploadedDocs(prev => ({ ...prev, [key]: { name: file.name, size: file.size, date: new Date().toLocaleDateString("zh-HK") } }));
+          setUploadedDocs(prev => ({ ...prev, [key]: { name: file.name, size: file.size, date: new Date().toLocaleDateString("zh-HK"), expiry } }));
           setUploadStatus(prev => ({ ...prev, [key]: "done" }));
           showToast(`✅ ${DOC_TYPES.find(d=>d.key===key)?.label} 上傳成功！`);
         };
@@ -2544,11 +2616,35 @@ function MainApp({ user, onLogout, projects = [] }) {
                 {uploaded && <span style={{ fontSize:20 }}>✅</span>}
               </div>
 
+              {/* Expiry date input (only for docs that have expiry) */}
+              {doc.hasExpiry && (
+                <div style={{ marginBottom: 10, padding: "10px 12px", background: "rgba(96,165,250,0.05)", borderRadius: 10, border: "1px solid rgba(96,165,250,0.15)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: "var(--blue)", display: "flex", alignItems: "center", gap: 6 }}>
+                      📅 到期日
+                    </label>
+                    <input
+                      type="date"
+                      value={docExpiry[doc.key] || ""}
+                      onChange={e => setDocExpiry(prev => ({ ...prev, [doc.key]: e.target.value }))}
+                      style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 8, padding: "6px 10px", fontSize: 13, fontFamily: "var(--font)", colorScheme: "dark" }}
+                    />
+                  </div>
+                  {docExpiry[doc.key] && (() => {
+                    const days = Math.ceil((new Date(docExpiry[doc.key]) - new Date()) / 86400000);
+                    if (days <= 0) return <div style={{ fontSize: 11, color: "var(--red)", marginTop: 6 }}>⚠️ 已過期 — 請盡快續期</div>;
+                    if (days <= 60) return <div style={{ fontSize: 11, color: "var(--orange)", marginTop: 6 }}>⚠️ 將於 {days} 日後到期，建議盡早續期</div>;
+                    return <div style={{ fontSize: 11, color: "var(--green)", marginTop: 6 }}>✓ 有效至 {docExpiry[doc.key]}（尚有 {days} 日）</div>;
+                  })()}
+                </div>
+              )}
+
               {uploaded ? (
                 <div style={{ background:"rgba(34,197,94,0.08)", borderRadius:10, padding:"10px 12px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                   <div>
                     <div style={{ fontSize:13, fontWeight:700, color:"var(--green)" }}>✓ 已上傳</div>
                     <div style={{ fontSize:12, color:"var(--muted)" }}>{uploaded.name} · {uploaded.date}</div>
+                    {uploaded.expiry && <div style={{ fontSize: 11, color: "var(--blue)", marginTop: 2 }}>📅 到期：{uploaded.expiry}</div>}
                   </div>
                   <label style={{ background:"var(--surface2)", border:"none", color:"var(--muted)", borderRadius:8, padding:"6px 12px", fontSize:12, cursor:"pointer", fontFamily:"var(--font)" }}>
                     重新上傳
@@ -2582,11 +2678,13 @@ function MainApp({ user, onLogout, projects = [] }) {
 
   // ── PIN Change Screen ──────────────────────────────────────────────────────
   const PinScreen = () => {
-    const [oldPin, setOldPin] = useState("");
-    const [newPin, setNewPin] = useState("");
-    const [confirmPin, setConfirmPin] = useState("");
-    const [saving, setSaving] = useState(false);
-    const [show, setShow] = useState({ old:false, new:false, confirm:false });
+    // State pulled from MainApp scope to prevent input flicker on every keystroke
+    // (defining state locally would re-init on every MainApp re-render → focus loss).
+    const oldPin = pinOld; const setOldPin = setPinOld;
+    const newPin = pinNew; const setNewPin = setPinNew;
+    const confirmPin = pinConfirm; const setConfirmPin = setPinConfirm;
+    const saving = pinSaving; const setSaving = setPinSaving;
+    const show = pinShow; const setShow = setPinShow;
 
     const handleChange = async () => {
       if (oldPin !== EMPLOYEE.pin) { showToast("❌ 舊 PIN 不正確", "error"); return; }
