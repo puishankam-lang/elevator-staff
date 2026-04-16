@@ -4,6 +4,40 @@ import React, { useState, useEffect, useRef } from "react";
 const SUPABASE_URL = "https://fyxvejnvzflxppqrhlzt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_k9GEEEmqiYnuBPFqsQuvIQ_YGjweOSh";
 
+// WhatsApp Bot — delegates to the Make.com webhook the admin configured on
+// the management console. Mobile app uses a default webhook/boss phone
+// (matches the mgmt console's defaults). Returns {ok, reason}.
+const WA_WEBHOOK = "https://hook.eu2.make.com/YOUR_WEBHOOK_ID";
+const BOSS_PHONE_WA = "85254442099";
+
+async function sendWhatsApp(phone, message) {
+  try {
+    if (!phone) return { ok: false, reason: "電話未設定" };
+    const digits = String(phone).replace(/\D/g, "");
+    const e164 = digits.startsWith("852") ? digits : ("852" + digits);
+    if (!WA_WEBHOOK || WA_WEBHOOK.includes("YOUR_WEBHOOK_ID")) {
+      // Silent skip during local dev — the mgmt console controls the real webhook
+      return { ok: false, reason: "webhook 未設定（由管理員於系統設定頁面配置）" };
+    }
+    const res = await fetch(WA_WEBHOOK, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: e164, message }),
+    });
+    return { ok: res.ok };
+  } catch (e) { return { ok: false, reason: e.message }; }
+}
+
+// Leave types shown in the request form (aligned with leave_requests.leave_type check constraint)
+const LEAVE_TYPES = [
+  { key: "personal",     label: "事假",   icon: "🗓️",  color: "#60A5FA" },
+  { key: "sick",         label: "病假",   icon: "🤒",  color: "#EF4444" },
+  { key: "annual",       label: "年假",   icon: "🏖️",  color: "#22C55E" },
+  { key: "compensatory", label: "補假",   icon: "⏱️",  color: "#A78BFA" },
+  { key: "unpaid",       label: "無薪假", icon: "💸",  color: "#F0C000" },
+  { key: "other",        label: "其他",   icon: "📝",  color: "#9CA3AF" },
+];
+
 async function sbFetch(table, options = {}) {
   const { select = "*", filter, order, limit } = options;
   let url = `${SUPABASE_URL}/rest/v1/${table}?select=${select}`;
@@ -1331,6 +1365,19 @@ function MainApp({ user, onLogout, projects = [] }) {
         )}
       </div>
 
+      <div className="section-label">請假 / 休假</div>
+      <div className="info-card" onClick={() => setScreen("leave")} style={{ cursor: "pointer", marginBottom: 16 }}>
+        <div className="info-row" style={{ borderBottom: "none", padding: "4px 0" }}>
+          <span className="info-key" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 22 }}>📝</span>
+            <span>申請請假</span>
+          </span>
+          <span className="info-val" style={{ color: "var(--orange)" }}>
+            事假 / 病假 / 年假 / 補假 →
+          </span>
+        </div>
+      </div>
+
       <div className="section-label">今日狀態</div>
       <div className="info-card">
         <div className="info-row">
@@ -2124,6 +2171,29 @@ function MainApp({ user, onLogout, projects = [] }) {
     );
   };
 
+  // ── Leave Request state (lifted to MainApp to survive re-renders) ────────
+  const [leaveType, setLeaveType] = useState("personal");
+  const [leaveStart, setLeaveStart] = useState("");
+  const [leaveEnd, setLeaveEnd] = useState("");
+  const [leaveDays, setLeaveDays] = useState("1");
+  const [leaveReason, setLeaveReason] = useState("");
+  const [leaveSaving, setLeaveSaving] = useState(false);
+  const [leaveHistory, setLeaveHistory] = useState([]);
+  const [leaveLoading, setLeaveLoading] = useState(false);
+
+  // Load this user's leave history whenever the Leave screen opens
+  useEffect(() => {
+    if (screen !== "leave" || !EMPLOYEE?.id) return;
+    setLeaveLoading(true);
+    fetch(`${SUPABASE_URL}/rest/v1/leave_requests?employee_id=eq.${EMPLOYEE.id}&order=created_at.desc&limit=30`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setLeaveHistory(d); })
+      .catch(() => {})
+      .finally(() => setLeaveLoading(false));
+  }, [screen, EMPLOYEE?.id]);
+
   // ── PIN Change State (moved to MainApp to prevent input flicker) ──────────
   const [pinOld, setPinOld] = useState("");
   const [pinNew, setPinNew] = useState("");
@@ -2702,6 +2772,165 @@ function MainApp({ user, onLogout, projects = [] }) {
   };
 
 
+  // ── Leave Request Screen ──────────────────────────────────────────────────
+  const LeaveScreen = () => {
+    const calcDays = (s, e) => {
+      if (!s || !e) return "1";
+      const ms = new Date(e) - new Date(s);
+      const d = Math.floor(ms / 86400000) + 1;
+      return d > 0 ? String(d) : "1";
+    };
+
+    const handleStartChange = (v) => {
+      setLeaveStart(v);
+      if (!leaveEnd || new Date(v) > new Date(leaveEnd)) setLeaveEnd(v);
+      setLeaveDays(calcDays(v, leaveEnd || v));
+    };
+    const handleEndChange = (v) => {
+      setLeaveEnd(v);
+      setLeaveDays(calcDays(leaveStart, v));
+    };
+
+    const canSubmit = leaveStart && leaveEnd && Number(leaveDays) > 0 && !leaveSaving;
+
+    const handleSubmit = async () => {
+      if (!canSubmit) return;
+      setLeaveSaving(true);
+      try {
+        const typeMeta = LEAVE_TYPES.find(t => t.key === leaveType);
+        const row = {
+          employee_id: EMPLOYEE.id,
+          leave_type: leaveType,
+          start_date: leaveStart,
+          end_date: leaveEnd,
+          days: Number(leaveDays),
+          reason: leaveReason || null,
+          status: "pending",
+        };
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/leave_requests`, {
+          method: "POST",
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "return=representation" },
+          body: JSON.stringify(row),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const [saved] = await res.json();
+        setLeaveHistory(prev => [saved, ...prev]);
+        // WhatsApp notify admin
+        const msg = `📝 收到請假申請\n員工：${EMPLOYEE.name}\n類型：${typeMeta?.label}\n日期：${leaveStart} 至 ${leaveEnd}（${leaveDays} 日）\n原因：${leaveReason || "—"}\n\n請到管理系統審批`;
+        sendWhatsApp(BOSS_PHONE_WA, msg); // fire-and-forget
+        showToast(`✅ 請假申請已提交，等候批核`);
+        setLeaveReason("");
+        setLeaveDays("1");
+      } catch (e) {
+        showToast(`❌ 提交失敗：${e.message}`, "error");
+      }
+      setLeaveSaving(false);
+    };
+
+    const STATUS_META = {
+      pending:  { label: "審批中", color: "var(--orange)", pill: "orange" },
+      approved: { label: "已批准", color: "var(--green)",  pill: "green" },
+      rejected: { label: "已拒絕", color: "var(--red)",    pill: "red" },
+    };
+
+    return (
+      <>
+        <div className="section-label">申請新請假</div>
+
+        {/* Leave type pills */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+          {LEAVE_TYPES.map(t => {
+            const active = leaveType === t.key;
+            return (
+              <div key={t.key} onClick={() => setLeaveType(t.key)}
+                style={{ padding: "10px 14px", borderRadius: 20, border: `1.5px solid ${active ? t.color : "var(--border)"}`, background: active ? `${t.color}15` : "var(--surface)", color: active ? t.color : "var(--muted)", cursor: "pointer", fontSize: 13, fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
+                <span>{t.icon}</span> {t.label}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Date range + days */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>開始日期</label>
+            <input type="date" value={leaveStart} onChange={e => handleStartChange(e.target.value)}
+              style={{ width: "100%", marginTop: 6, background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text)", borderRadius: 12, padding: "12px 14px", fontSize: 14, fontFamily: "var(--font)", fontWeight: 700, colorScheme: "dark" }} />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>結束日期</label>
+            <input type="date" value={leaveEnd} min={leaveStart || undefined} onChange={e => handleEndChange(e.target.value)}
+              style={{ width: "100%", marginTop: 6, background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text)", borderRadius: 12, padding: "12px 14px", fontSize: 14, fontFamily: "var(--font)", fontWeight: 700, colorScheme: "dark" }} />
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>請假日數（可輸入 0.5 表示半日）</label>
+          <input type="number" step="0.5" min="0.5" value={leaveDays} onChange={e => setLeaveDays(e.target.value)}
+            style={{ width: "100%", marginTop: 6, background: "var(--surface)", border: "1.5px solid var(--orange)", color: "var(--orange)", borderRadius: 12, padding: "12px 14px", fontSize: 18, fontFamily: "var(--font)", fontWeight: 800, textAlign: "center" }} />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 11, color: "var(--muted)", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>原因（可選）</label>
+          <textarea value={leaveReason} onChange={e => setLeaveReason(e.target.value)}
+            placeholder="例：家人婚禮、覆診、私人事務..."
+            style={{ width: "100%", marginTop: 6, background: "var(--surface)", border: "1.5px solid var(--border)", color: "var(--text)", borderRadius: 12, padding: "12px 14px", fontSize: 13, fontFamily: "var(--font)", minHeight: 80, resize: "none" }} />
+        </div>
+
+        <button className={`big-btn ${canSubmit ? "primary" : "disabled"}`} onClick={handleSubmit} disabled={!canSubmit}>
+          <span className="big-btn-icon">{leaveSaving ? "⏳" : "📤"}</span>
+          {leaveSaving ? "提交中..." : "提交請假申請"}
+        </button>
+        <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 8, marginBottom: 16 }}>
+          提交後即時通知管理員審批
+        </div>
+
+        {/* History */}
+        <div className="section-label">我的請假記錄</div>
+        {leaveLoading ? (
+          <div style={{ color: "var(--muted)", fontSize: 13, textAlign: "center", padding: "20px 0" }}>載入中...</div>
+        ) : leaveHistory.length === 0 ? (
+          <div className="info-card" style={{ textAlign: "center", padding: 20 }}>
+            <div style={{ fontSize: 32, marginBottom: 6 }}>📅</div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>尚未有請假記錄</div>
+          </div>
+        ) : (
+          leaveHistory.map(r => {
+            const t = LEAVE_TYPES.find(x => x.key === r.leave_type);
+            const s = STATUS_META[r.status] || STATUS_META.pending;
+            return (
+              <div key={r.id} className="info-card" style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: t?.color || "var(--text)" }}>
+                      {t?.icon} {t?.label || r.leave_type} · {r.days} 日
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                      {r.start_date} 至 {r.end_date}
+                    </div>
+                  </div>
+                  <span className={`pill ${s.pill}`} style={{ fontSize: 11 }}>
+                    <span className="pill-dot" />
+                    {s.label}
+                  </span>
+                </div>
+                {r.reason && <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5, marginTop: 4 }}>💬 {r.reason}</div>}
+                {r.admin_note && (
+                  <div style={{ marginTop: 6, padding: "6px 10px", background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)", borderRadius: 8, fontSize: 12, color: "var(--blue)" }}>
+                    👨‍💼 管理員備注：{r.admin_note}
+                  </div>
+                )}
+                <div style={{ fontSize: 10, color: "#555d6e", marginTop: 6 }}>
+                  提交於 {r.created_at ? new Date(r.created_at).toLocaleString("zh-HK") : "—"}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </>
+    );
+  };
+
   // ── PIN Change Screen ──────────────────────────────────────────────────────
   const PinScreen = () => {
     // State pulled from MainApp scope to prevent input flicker on every keystroke
@@ -2774,8 +3003,8 @@ function MainApp({ user, onLogout, projects = [] }) {
     );
   };
 
-  const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, docs: DocsScreen, salary: SalaryScreen, pin: PinScreen };
-  const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", workorder: "每日工序申報", docs: "文件上傳", salary: "我的薪酬", pin: "更改 PIN 碼" };
+  const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, docs: DocsScreen, salary: SalaryScreen, leave: LeaveScreen, pin: PinScreen };
+  const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", workorder: "每日工序申報", docs: "文件上傳", salary: "我的薪酬", leave: "請假申請", pin: "更改 PIN 碼" };
   const ActiveScreen = screens[screen];
 
   return (
