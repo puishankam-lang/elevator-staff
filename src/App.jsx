@@ -76,16 +76,26 @@ const S = `
     align-items: flex-start;
   }
 
-  /* Phone shell */
+  /* Phone shell — full-width on mobile, framed on tablet/desktop */
   .phone-wrap {
     width: 100%;
-    max-width: 420px;
+    max-width: 100%;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     position: relative;
     background: var(--bg);
     overflow: hidden;
+  }
+  @media (min-width: 600px) {
+    body, #root { background: #07080a; }
+    .phone-wrap {
+      max-width: 480px;
+      margin: 0 auto;
+      box-shadow: 0 0 60px rgba(0,0,0,0.6);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+    }
   }
 
   /* Status bar */
@@ -687,17 +697,27 @@ const S = `
   .salary-row-val.muted { color: var(--muted); }
   .salary-divider { height: 1px; background: var(--border); margin: 0 16px; }
 
-  /* ── BOTTOM NAV ── */
+  /* ── BOTTOM NAV (matches phone-wrap width) ── */
   .bottom-nav {
     position: fixed;
     bottom: 0;
+    left: 0;
+    right: 0;
     width: 100%;
-    max-width: 420px;
     background: var(--surface);
     border-top: 1px solid var(--border);
     padding: 8px 4px 16px;
     display: flex;
     z-index: 100;
+  }
+  @media (min-width: 600px) {
+    .bottom-nav {
+      max-width: 480px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+    }
   }
   .nav-tab {
     flex: 1;
