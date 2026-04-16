@@ -237,20 +237,22 @@ const S = `
     color: #fff;
   }
 
-  /* Big action buttons */
+  /* Big action buttons — tag-style wrap layout: flow left-to-right, wrap
+     to the next line when space runs out. Each item sizes to its content
+     + padding, matching the Declaration page's tag wrapping. */
   .action-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 12px;
     margin-bottom: 16px;
   }
   .action-btn {
     background: var(--surface);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px 10px 12px;
-    display: flex;
+    padding: 14px 16px 12px;
+    display: inline-flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -262,7 +264,6 @@ const S = `
     -webkit-tap-highlight-color: transparent;
     position: relative;
     overflow: hidden;
-    min-height: 96px;
   }
   .action-btn:active { transform: scale(0.97); }
   .action-btn.orange-accent { border-color: rgba(255,107,26,0.3); background: rgba(255,107,26,0.05); }
