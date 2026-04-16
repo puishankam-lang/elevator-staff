@@ -1372,30 +1372,34 @@ function MainApp({ user, onLogout, projects = [] }) {
         {!signed ? (
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {PROJECTS_LIST.map((p, i) => (
-                <div key={i}
-                  onClick={() => setSelectedProject(p)}
-                  style={{
-                    background: selectedProject === p ? "var(--orange-glow)" : "var(--surface)",
-                    border: `1.5px solid ${selectedProject === p ? "var(--orange)" : "var(--border)"}`,
-                    borderRadius: 14, padding: "14px 16px",
-                    display: "flex", alignItems: "center", gap: 12,
-                    cursor: "pointer", transition: "all 0.15s",
-                  }}>
-                  <div style={{
-                    width: 22, height: 22, borderRadius: "50%",
-                    border: `2.5px solid ${selectedProject === p ? "var(--orange)" : "var(--border)"}`,
-                    background: selectedProject === p ? "var(--orange)" : "transparent",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0, transition: "all 0.15s",
-                  }}>
-                    {selectedProject === p && <span style={{ fontSize: 12, color: "#fff", fontWeight: 900 }}>✓</span>}
+              {PROJECTS_LIST.map((p, i) => {
+                const pName = typeof p === "object" ? p.name : p;
+                const isSelected = (typeof selectedProject === "object" ? selectedProject?.name : selectedProject) === pName;
+                return (
+                  <div key={i}
+                    onClick={() => setSelectedProject(p)}
+                    style={{
+                      background: isSelected ? "var(--orange-glow)" : "var(--surface)",
+                      border: `1.5px solid ${isSelected ? "var(--orange)" : "var(--border)"}`,
+                      borderRadius: 14, padding: "14px 16px",
+                      display: "flex", alignItems: "center", gap: 12,
+                      cursor: "pointer", transition: "all 0.15s",
+                    }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: "50%",
+                      border: `2.5px solid ${isSelected ? "var(--orange)" : "var(--border)"}`,
+                      background: isSelected ? "var(--orange)" : "transparent",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      flexShrink: 0, transition: "all 0.15s",
+                    }}>
+                      {isSelected && <span style={{ fontSize: 12, color: "#fff", fontWeight: 900 }}>✓</span>}
+                    </div>
+                    <span style={{ fontSize: 14, fontWeight: 600, color: isSelected ? "var(--orange)" : "var(--text)" }}>
+                      🏗️ {pName}
+                    </span>
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: selectedProject === p ? "var(--orange)" : "var(--text)" }}>
-                    🏗️ {p}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {selectedProject === "" && (
               <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", marginTop: 8 }}>
@@ -2321,9 +2325,10 @@ function MainApp({ user, onLogout, projects = [] }) {
                 "EC-641永信大廈",
                 "EC-642旺角砵蘭街停車場",
                 "EC-648彩暉花園",
-              ]).map((p,i) => (
-                <option key={i} value={p}>{p}</option>
-              ))}
+              ]).map((p,i) => {
+                const name = typeof p === "object" ? p.name : p;
+                return <option key={i} value={name}>{name}</option>;
+              })}
             </select>
 
             <div className="section-label">升降機編號（如適用）</div>
