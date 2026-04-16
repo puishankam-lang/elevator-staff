@@ -237,26 +237,25 @@ const S = `
     color: #fff;
   }
 
-  /* Big action buttons — tag-style wrap layout: flow left-to-right, wrap
-     to the next line when space runs out. Each item sizes to its content
-     + padding, matching the Declaration page's tag wrapping. */
+  /* Daily Tasks: 2-col grid stretched to container width (matches Declaration
+     page padding). Cards fill the cell evenly — no space-between, no tag-wrap. */
   .action-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
+    width: 100%;
     margin-bottom: 16px;
   }
   .action-btn {
     background: var(--surface);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 14px 16px 12px;
-    display: inline-flex;
+    padding: 16px 12px 14px;
+    display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
     text-align: center;
     transition: transform 0.1s, background 0.15s;
@@ -264,6 +263,8 @@ const S = `
     -webkit-tap-highlight-color: transparent;
     position: relative;
     overflow: hidden;
+    min-height: 104px;
+    width: 100%;
   }
   .action-btn:active { transform: scale(0.97); }
   .action-btn.orange-accent { border-color: rgba(255,107,26,0.3); background: rgba(255,107,26,0.05); }
@@ -786,6 +787,32 @@ const EMPLOYEE_DB = [
   // 如需測試，請聯絡系統管理員
 ];
 
+// Module-level fallback lists used when Supabase `projects` is empty.
+// Hoisted out of the screen components so the array reference is stable
+// across renders — otherwise every MainApp re-render creates a fresh
+// array, React sees a new .map() input, and the site-picker list flashes.
+const FALLBACK_PROJECT_NAMES = [
+  "EC-550屯門醫院輕鐵站行人天橋NF411",
+  "EC-590大圓街GDS數據中心升降機",
+  "EC-547將軍澳第67區政府聯用辦工大樓",
+  "EC-530西灣河綜合大樓",
+  "EC-540柴灣政府綜合大樓",
+];
+const FALLBACK_SITE_NAMES = [
+  "EC-590大圓街GDS數據中心升降機",
+  "EC-662柴灣VTC",
+  "EC-550屯門橋機",
+  "EC-547將軍澳政府聯用辦工大樓",
+  "EC-530西灣河綜合大樓",
+  "EC-540柴灣政府綜合大樓",
+  "EC-591 CUHK LAB",
+  "EC-617柴灣政府物料營運中心",
+  "EC-621成運街數據中心",
+  "EC-641永信大廈",
+  "EC-642旺角砵蘭街停車場",
+  "EC-648彩暉花園",
+];
+
 const genAttendance = (presentDays) => {
   const days = [];
   let present = 0;
@@ -876,18 +903,6 @@ function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB }) {
               下一步 →
             </button>
 
-            {/* Demo hint */}
-            <div style={{ marginTop: 28, background: "rgba(255,107,26,0.06)", border: "1px solid rgba(255,107,26,0.15)", borderRadius: 12, padding: "14px 16px" }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "var(--orange)", marginBottom: 8 }}>👷 測試帳號（Demo）</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                {EMPLOYEE_DB.map(e => (
-                  <div key={e.id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)" }}>
-                    <span style={{ cursor: "pointer", color: "var(--sub)" }} onClick={() => setPhone(e.phone)}>{e.name} — {e.phone}</span>
-                    <span style={{ color: "var(--muted)" }}>PIN: {e.pin}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </>
         ) : (
           <>
@@ -1361,13 +1376,9 @@ function MainApp({ user, onLogout, projects = [] }) {
       showToast("✅ 安全守則簽署完成！");
     };
 
-    const PROJECTS_LIST = projects.length > 0 ? projects : [
-      "EC-550屯門醫院輕鐵站行人天橋NF411",
-      "EC-590大圓街GDS數據中心升降機",
-      "EC-547將軍澳第67區政府聯用辦工大樓",
-      "EC-530西灣河綜合大樓",
-      "EC-540柴灣政府綜合大樓",
-    ];
+    // Use hoisted constant as fallback so the array reference is stable
+    // across renders (was causing the site list to flicker/remount).
+    const PROJECTS_LIST = projects.length > 0 ? projects : FALLBACK_PROJECT_NAMES;
 
     return (
       <>
@@ -1376,11 +1387,12 @@ function MainApp({ user, onLogout, projects = [] }) {
         {!signed ? (
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {PROJECTS_LIST.map((p, i) => {
+              {PROJECTS_LIST.map((p) => {
                 const pName = typeof p === "object" ? p.name : p;
+                const pKey = (typeof p === "object" && p.id) ? p.id : pName;
                 const isSelected = (typeof selectedProject === "object" ? selectedProject?.name : selectedProject) === pName;
                 return (
-                  <div key={i}
+                  <div key={pKey}
                     onClick={() => setSelectedProject(p)}
                     style={{
                       background: isSelected ? "var(--orange-glow)" : "var(--surface)",
@@ -1484,13 +1496,9 @@ function MainApp({ user, onLogout, projects = [] }) {
   };
 
   const GpsScreen = () => {
-    // Projects can be strings (name only) or objects {name, lat, lng}
-    const SITE_LIST = projects.length > 0 ? projects : [
-      "EC-590大圓街GDS數據中心升降機", "EC-662柴灣VTC", "EC-550屯門橋機",
-      "EC-547將軍澳政府聯用辦工大樓", "EC-530西灣河綜合大樓",
-      "EC-540柴灣政府綜合大樓", "EC-591 CUHK LAB",
-      "EC-617柴灣政府物料營運中心", "EC-621成運街數據中心", "EC-641永信大廈",
-    ];
+    // Projects can be strings (name only) or objects {name, lat, lng}.
+    // Fallback hoisted to module scope so the array reference is stable.
+    const SITE_LIST = projects.length > 0 ? projects : FALLBACK_SITE_NAMES;
     const hasSiteCoords = siteLat && siteLng;
     const coordStr = userLat && userLng
       ? `${userLat.toFixed(5)}°N  ${userLng.toFixed(5)}°E`
@@ -1623,10 +1631,11 @@ function MainApp({ user, onLogout, projects = [] }) {
               style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${selectedProject?"var(--orange)":"var(--border)"}`, color:selectedProject?"var(--text)":"var(--muted)", borderRadius:14, padding:"14px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:16, fontWeight:600 }}
             >
               <option value="">── 選擇今日工地 ──</option>
-              {SITE_LIST.map((p,i) => {
+              {SITE_LIST.map((p) => {
                 const name = typeof p === "object" ? p.name : p;
+                const pKey = (typeof p === "object" && p.id) ? p.id : name;
                 const hasCoords = typeof p === "object" && p.lat && p.lng;
-                return <option key={i} value={name}>{hasCoords ? "📍 " : ""}{name}</option>;
+                return <option key={pKey} value={name}>{hasCoords ? "📍 " : ""}{name}</option>;
               })}
             </select>
             {hasSiteCoords && !gpsWatching && !gpsError && (
@@ -2316,22 +2325,10 @@ function MainApp({ user, onLogout, projects = [] }) {
             <select value={workSite} onChange={e=>setWorkSite(e.target.value)}
               style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${workSite?"var(--orange)":"var(--border)"}`, color:workSite?"var(--text)":"var(--muted)", borderRadius:14, padding:"13px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:12, fontWeight:600 }}>
               <option value="">── 選擇工地 ──</option>
-              {(projects.length > 0 ? projects : [
-                "EC-590大圓街GDS數據中心升降機",
-                "EC-662柴灣VTC",
-                "EC-550屯門橋機",
-                "EC-547將軍澳政府聯用辦工大樓",
-                "EC-530西灣河綜合大樓",
-                "EC-540柴灣政府綜合大樓",
-                "EC-591 CUHK LAB",
-                "EC-617柴灣政府物料營運中心",
-                "EC-621成運街數據中心",
-                "EC-641永信大廈",
-                "EC-642旺角砵蘭街停車場",
-                "EC-648彩暉花園",
-              ]).map((p,i) => {
+              {(projects.length > 0 ? projects : FALLBACK_SITE_NAMES).map((p) => {
                 const name = typeof p === "object" ? p.name : p;
-                return <option key={i} value={name}>{name}</option>;
+                const pKey = (typeof p === "object" && p.id) ? p.id : name;
+                return <option key={pKey} value={name}>{name}</option>;
               })}
             </select>
 
