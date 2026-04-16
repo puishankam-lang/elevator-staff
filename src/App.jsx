@@ -4,29 +4,8 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 const SUPABASE_URL = "https://fyxvejnvzflxppqrhlzt.supabase.co";
 const SUPABASE_KEY = "sb_publishable_k9GEEEmqiYnuBPFqsQuvIQ_YGjweOSh";
 
-// WhatsApp Bot — delegates to the Make.com webhook the admin configured on
-// the management console. Mobile app uses a default webhook/boss phone
-// (matches the mgmt console's defaults). Returns {ok, reason}.
-const WA_WEBHOOK = "https://hook.eu2.make.com/YOUR_WEBHOOK_ID";
-const BOSS_PHONE_WA = "85254442099";
-
-async function sendWhatsApp(phone, message) {
-  try {
-    if (!phone) return { ok: false, reason: "電話未設定" };
-    const digits = String(phone).replace(/\D/g, "");
-    const e164 = digits.startsWith("852") ? digits : ("852" + digits);
-    if (!WA_WEBHOOK || WA_WEBHOOK.includes("YOUR_WEBHOOK_ID")) {
-      // Silent skip during local dev — the mgmt console controls the real webhook
-      return { ok: false, reason: "webhook 未設定（由管理員於系統設定頁面配置）" };
-    }
-    const res = await fetch(WA_WEBHOOK, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: e164, message }),
-    });
-    return { ok: res.ok };
-  } catch (e) { return { ok: false, reason: e.message }; }
-}
+// Admin is notified of new leave requests via the mgmt console's 15s
+// polling inbox, so the mobile app no longer needs its own WhatsApp bot.
 
 // Leave types shown in the request form (aligned with leave_requests.leave_type check constraint)
 const LEAVE_TYPES = [
@@ -2832,9 +2811,9 @@ function MainApp({ user, onLogout, projects = [] }) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const [saved] = await res.json();
         setLeaveHistory(prev => [saved, ...prev]);
-        // WhatsApp notify admin
-        const msg = `📝 收到請假申請\n員工：${EMPLOYEE.name}\n類型：${typeMeta?.label}\n日期：${leaveStart} 至 ${leaveEnd}（${leaveDays} 日）\n原因：${leaveReason || "—"}\n\n請到管理系統審批`;
-        sendWhatsApp(BOSS_PHONE_WA, msg); // fire-and-forget
+        // Admin sees the new pending request in the console's 15s-polling
+        // 請假審批 inbox — no WhatsApp needed from the worker's side.
+        void typeMeta; // (typeMeta intentionally unused after removing the WA notify)
         showToast(`✅ 請假申請已提交，等候批核`);
         setLeaveReason("");
         setLeaveDays("1");
