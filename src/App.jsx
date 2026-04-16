@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 
 // ─── SUPABASE CLIENT ─────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://fyxvejnvzflxppqrhlzt.supabase.co";
@@ -272,10 +272,13 @@ const S = `
   }
 
   /* Daily Tasks: 2-col grid stretched to container width (matches Declaration
-     page padding). Cards fill the cell evenly — no space-between, no tag-wrap. */
+     page padding). grid-auto-rows: 1fr + height: 100% on the cards makes
+     every row the same height even when one card has more text than another,
+     so the 2×2 grid stays visually balanced and aligned with the header/footer. */
   .action-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 1fr;
     gap: 12px;
     width: 100%;
     margin-bottom: 16px;
@@ -299,6 +302,8 @@ const S = `
     overflow: hidden;
     min-height: 104px;
     width: 100%;
+    height: 100%;
+    box-sizing: border-box;
   }
   .action-btn:active { transform: scale(0.97); }
   .action-btn.orange-accent { border-color: rgba(255,107,26,0.3); background: rgba(255,107,26,0.05); }
@@ -1427,6 +1432,46 @@ function MainApp({ user, onLogout, projects = [] }) {
     // across renders (was causing the site list to flicker/remount).
     const PROJECTS_LIST = projects.length > 0 ? projects : FALLBACK_PROJECT_NAMES;
 
+    // The list items depend only on PROJECTS_LIST + the currently-selected
+    // project name. Memoising means unrelated re-renders (clock tick every
+    // 1s, GPS watch callbacks updating userLat/userLng, toast showing &
+    // hiding, etc.) do NOT rebuild all four <div>s and the browser no longer
+    // sees the selected card briefly vanish when one of those other state
+    // updates lands right after the click.
+    const selectedName = typeof selectedProject === "object"
+      ? selectedProject?.name
+      : selectedProject;
+    const handlePickProject = useCallback((p) => setSelectedProject(p), []);
+    const projectItems = useMemo(() => PROJECTS_LIST.map((p) => {
+      const pName = typeof p === "object" ? p.name : p;
+      const pKey = (typeof p === "object" && p.id) ? p.id : pName;
+      const isSelected = selectedName === pName;
+      return (
+        <div key={pKey}
+          onClick={() => handlePickProject(p)}
+          style={{
+            background: isSelected ? "var(--orange-glow)" : "var(--surface)",
+            border: `1.5px solid ${isSelected ? "var(--orange)" : "var(--border)"}`,
+            borderRadius: 14, padding: "14px 16px",
+            display: "flex", alignItems: "center", gap: 12,
+            cursor: "pointer", transition: "all 0.15s",
+          }}>
+          <div style={{
+            width: 22, height: 22, borderRadius: "50%",
+            border: `2.5px solid ${isSelected ? "var(--orange)" : "var(--border)"}`,
+            background: isSelected ? "var(--orange)" : "transparent",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, transition: "all 0.15s",
+          }}>
+            {isSelected && <span style={{ fontSize: 12, color: "#fff", fontWeight: 900 }}>✓</span>}
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 600, color: isSelected ? "var(--orange)" : "var(--text)" }}>
+            🏗️ {pName}
+          </span>
+        </div>
+      );
+    }), [PROJECTS_LIST, selectedName, handlePickProject]);
+
     return (
       <>
         {/* Step 1: Select Project */}
@@ -1434,35 +1479,7 @@ function MainApp({ user, onLogout, projects = [] }) {
         {!signed ? (
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {PROJECTS_LIST.map((p) => {
-                const pName = typeof p === "object" ? p.name : p;
-                const pKey = (typeof p === "object" && p.id) ? p.id : pName;
-                const isSelected = (typeof selectedProject === "object" ? selectedProject?.name : selectedProject) === pName;
-                return (
-                  <div key={pKey}
-                    onClick={() => setSelectedProject(p)}
-                    style={{
-                      background: isSelected ? "var(--orange-glow)" : "var(--surface)",
-                      border: `1.5px solid ${isSelected ? "var(--orange)" : "var(--border)"}`,
-                      borderRadius: 14, padding: "14px 16px",
-                      display: "flex", alignItems: "center", gap: 12,
-                      cursor: "pointer", transition: "all 0.15s",
-                    }}>
-                    <div style={{
-                      width: 22, height: 22, borderRadius: "50%",
-                      border: `2.5px solid ${isSelected ? "var(--orange)" : "var(--border)"}`,
-                      background: isSelected ? "var(--orange)" : "transparent",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      flexShrink: 0, transition: "all 0.15s",
-                    }}>
-                      {isSelected && <span style={{ fontSize: 12, color: "#fff", fontWeight: 900 }}>✓</span>}
-                    </div>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: isSelected ? "var(--orange)" : "var(--text)" }}>
-                      🏗️ {pName}
-                    </span>
-                  </div>
-                );
-              })}
+              {projectItems}
             </div>
             {selectedProject === "" && (
               <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", marginTop: 8 }}>
