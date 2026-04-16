@@ -1,4 +1,4 @@
-1import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ─── SUPABASE CLIENT ─────────────────────────────────────────────────────────
 const SUPABASE_URL = "https://fyxvejnvzflxppqrhlzt.supabase.co";
