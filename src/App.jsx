@@ -1055,6 +1055,7 @@ export default function App() {
           id: p.id,
           lat: p.site_lat || null,
           lng: p.site_lng || null,
+          contractValue: p.contract_value || 0, // for auto-invoice on milestone done
         })));
         setDbReady(true);
       } catch(e) {
@@ -1167,6 +1168,7 @@ function MainApp({ user, onLogout, projects = [] }) {
   const [progressSubmitted, setProgressSubmitted] = useState(false);
   const [progressSaving, setProgressSaving] = useState(false);
   const [progressStageDesc, setProgressStageDesc] = useState("");
+  const [progressStatus, setProgressStatus] = useState("done"); // "done" | "in_progress"
 
   // Salary view
   const [salaryMonth, setSalaryMonth] = useState(0);
@@ -1863,17 +1865,57 @@ function MainApp({ user, onLogout, projects = [] }) {
     const handleSubmit = async () => {
       if (!selectedPct) return;
       setProgressSaving(true);
+      const projObj = typeof selectedProject === "object" ? selectedProject : null;
+      const projName = siteName || EMPLOYEE.site || "";
+      const projId = projObj?.id || null;
+      const contractValue = Number(projObj?.contractValue || 0);
       try {
         await sbInsert("progress_reports", {
           employee_id: EMPLOYEE.id,
-          project: siteName || EMPLOYEE.site || "",
+          project: projName,
+          project_id: projId,
           progress_pct: Number(selectedPct),
           note: note,
-          submitted_at: new Date().toISOString()
+          status: progressStatus,
+          submitted_at: new Date().toISOString(),
         });
+
+        // Auto-create CF invoice if marked as 已完成此節點 AND project has a
+        // contract value to bill against. Mirrors the management console's
+        // Progress.handleSubmit auto-invoice flow.
+        let invoiceMsg = "";
+        if (progressStatus === "done" && projId && contractValue > 0) {
+          const amount = Math.round(contractValue * Number(selectedPct) / 100);
+          if (amount > 0) {
+            try {
+              const r = await fetch(
+                `${SUPABASE_URL}/rest/v1/invoices?select=cf_num&order=cf_num.desc.nullslast&limit=1`,
+                { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+              );
+              const rows = await r.json();
+              const nextNum = (Array.isArray(rows) && rows[0]?.cf_num ? Number(rows[0].cf_num) : 0) + 1;
+              const cfNoFmt = `CF${String(nextNum).padStart(5, "0")}`;
+              await fetch(`${SUPABASE_URL}/rest/v1/invoices`, {
+                method: "POST",
+                headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+                body: JSON.stringify({
+                  project_id: projId,
+                  stage: cfNoFmt,
+                  amount,
+                  label: stageDesc || `${selectedPct}% 完工節點`,
+                  cf_num: nextNum,
+                  status: "pending",
+                }),
+              });
+              invoiceMsg = ` — 自動產生 ${cfNoFmt} HK$${amount.toLocaleString()}`;
+            } catch (e) { /* invoice insert failed, still show success */ }
+          }
+        }
+
         setProgressSubmitted(true);
-        showToast(`📊 進度 ${selectedPct}% 已提交並儲存！`);
-      } catch(e) {
+        const statusLabel = progressStatus === "done" ? "✅ 已完成" : "🔄 進行中";
+        showToast(`📊 ${selectedPct}% ${statusLabel} 已提交${invoiceMsg}`);
+      } catch (e) {
         setProgressSubmitted(true);
         showToast(`📊 進度 ${selectedPct}% 已提交！`);
       }
@@ -1996,12 +2038,51 @@ function MainApp({ user, onLogout, projects = [] }) {
           </>
         )}
 
+        {/* Submission status — done = auto-trigger 自動請款 */}
+        {selectedPct && (
+          <>
+            <div className="section-label">提交狀態</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              <button
+                onClick={() => setProgressStatus("done")}
+                style={{
+                  flex: 1, padding: "12px 10px", borderRadius: 12,
+                  border: progressStatus === "done" ? "2px solid var(--green)" : "1.5px solid var(--border)",
+                  background: progressStatus === "done" ? "rgba(34,197,94,0.10)" : "var(--surface)",
+                  color: progressStatus === "done" ? "var(--green)" : "var(--muted)",
+                  cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "var(--font)",
+                }}
+              >
+                ✅ 已完成此節點
+              </button>
+              <button
+                onClick={() => setProgressStatus("in_progress")}
+                style={{
+                  flex: 1, padding: "12px 10px", borderRadius: 12,
+                  border: progressStatus === "in_progress" ? "2px solid var(--orange)" : "1.5px solid var(--border)",
+                  background: progressStatus === "in_progress" ? "var(--orange-glow)" : "var(--surface)",
+                  color: progressStatus === "in_progress" ? "var(--orange)" : "var(--muted)",
+                  cursor: "pointer", fontWeight: 700, fontSize: 13, fontFamily: "var(--font)",
+                }}
+              >
+                🔄 進行中（尚未完成）
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: -8, marginBottom: 14, lineHeight: 1.5 }}>
+              {progressStatus === "done"
+                ? "💡 標記「已完成」會自動產生請款單供管理員審批"
+                : "💡 「進行中」只會記錄進度，不會產生請款"}
+            </div>
+          </>
+        )}
+
         <button
           className={`big-btn ${selectedPct ? "primary" : "disabled"}`}
           onClick={handleSubmit}
+          disabled={progressSaving}
         >
-          <span className="big-btn-icon">📤</span>
-          提交今日進度回報
+          <span className="big-btn-icon">{progressSaving ? "⏳" : "📤"}</span>
+          {progressSaving ? "提交中..." : "提交今日進度回報"}
         </button>
       </>
     );
