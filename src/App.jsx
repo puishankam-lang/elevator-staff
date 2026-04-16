@@ -983,24 +983,10 @@ export default function App() {
   const [employees, setEmployees] = useState(EMPLOYEE_DB);
   const [projects, setProjects] = useState([]);
   const [dbReady, setDbReady] = useState(false);
-  const [offlineQueue, setOfflineQueue] = useState(queueGet().length);
-
-  // Auto-sync offline queue when network recovers
-  useEffect(() => {
-    const trySync = async () => {
-      const q = queueGet();
-      if (q.length === 0) return;
-      const synced = await syncOfflineQueue(SUPABASE_URL, SUPABASE_KEY);
-      if (synced > 0) {
-        setOfflineQueue(queueGet().length);
-        // show subtle toast only if logged in
-        if (EMPLOYEE) console.log(`✅ ${synced} offline record(s) synced`);
-      }
-    };
-    window.addEventListener("online", trySync);
-    trySync(); // also try on mount
-    return () => window.removeEventListener("online", trySync);
-  }, []);
+  // offlineQueue state + auto-sync live inside MainApp (post-login), since that
+  // is where the queue is written to and the UI referencing it is rendered.
+  // Keeping them here caused a ReferenceError from MainApp and referenced an
+  // EMPLOYEE variable that only exists after login.
 
   // Load employees + projects from Supabase on mount
   useEffect(() => {
@@ -1092,6 +1078,23 @@ function MainApp({ user, onLogout, projects = [] }) {
   const SALARY_HISTORY = user.salaryHistory;
 
   const [screen, setScreen] = useState("home");
+  const [offlineQueue, setOfflineQueue] = useState(() => queueGet().length);
+
+  // Auto-sync offline queue when network recovers (post-login only)
+  useEffect(() => {
+    const trySync = async () => {
+      if (queueGet().length === 0) return;
+      const synced = await syncOfflineQueue(SUPABASE_URL, SUPABASE_KEY);
+      if (synced > 0) {
+        setOfflineQueue(queueGet().length);
+        console.log(`✅ ${synced} offline record(s) synced`);
+      }
+    };
+    window.addEventListener("online", trySync);
+    trySync(); // also try on mount (user just logged in)
+    return () => window.removeEventListener("online", trySync);
+  }, []);
+
   const [toast, setToast] = useState(null);
 
   // Safety state
