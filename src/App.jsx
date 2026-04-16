@@ -90,7 +90,7 @@ const S = `
   @media (min-width: 600px) {
     body, #root { background: #07080a; }
     .phone-wrap {
-      max-width: 480px;
+      max-width: 420px;
       margin: 0 auto;
       box-shadow: 0 0 60px rgba(0,0,0,0.6);
       border-left: 1px solid var(--border);
@@ -204,8 +204,8 @@ const S = `
   .today-card {
     background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
     border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
     position: relative;
     overflow: hidden;
   }
@@ -226,7 +226,7 @@ const S = `
     background: rgba(255,255,255,0.05);
   }
   .today-label { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.7); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px; }
-  .today-site { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 12px; line-height: 1.2; }
+  .today-site { font-size: 18px; font-weight: 900; color: #fff; margin-bottom: 10px; line-height: 1.25; }
   .today-chips { display: flex; gap: 8px; flex-wrap: wrap; }
   .today-chip {
     background: rgba(255,255,255,0.15);
@@ -242,19 +242,19 @@ const S = `
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 20px;
+    gap: 10px;
+    margin-bottom: 16px;
   }
   .action-btn {
     background: var(--surface);
     border: 1.5px solid var(--border);
     border-radius: var(--radius);
-    padding: 20px 14px 18px;
+    padding: 14px 10px 12px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 6px;
     cursor: pointer;
     text-align: center;
     transition: transform 0.1s, background 0.15s;
@@ -262,7 +262,7 @@ const S = `
     -webkit-tap-highlight-color: transparent;
     position: relative;
     overflow: hidden;
-    min-height: 120px;
+    min-height: 96px;
   }
   .action-btn:active { transform: scale(0.97); }
   .action-btn.orange-accent { border-color: rgba(255,107,26,0.3); background: rgba(255,107,26,0.05); }
@@ -270,17 +270,17 @@ const S = `
   .action-btn.blue-accent { border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.05); }
   .action-btn.yellow-accent { border-color: rgba(250,204,21,0.3); background: rgba(250,204,21,0.05); }
   .action-icon {
-    font-size: 36px;
+    font-size: 28px;
     line-height: 1;
   }
   .action-label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
     color: var(--text);
     line-height: 1.2;
   }
   .action-sub {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
     font-weight: 600;
   }
@@ -712,7 +712,7 @@ const S = `
   }
   @media (min-width: 600px) {
     .bottom-nav {
-      max-width: 480px;
+      max-width: 420px;
       left: 50%;
       transform: translateX(-50%);
       border-left: 1px solid var(--border);
