@@ -2346,10 +2346,35 @@ function MainApp({ user, onLogout, projects = [] }) {
                   By signing, I confirm that I have received the full amount of salary as stated above without any dispute.
                 </div>
 
-                {/* Canvas */}
+                {/* Canvas — uses React pointer events (works for both touch + mouse) */}
                 <div style={{ background: "#fff", borderRadius: 10, overflow: "hidden", marginBottom: 10, border: "2px solid var(--border)" }}>
                   <canvas id="sigCanvas" width="340" height="120"
-                    style={{ width: "100%", height: 120, touchAction: "none", cursor: "crosshair" }} />
+                    style={{ width: "100%", height: 120, touchAction: "none", cursor: "crosshair" }}
+                    onPointerDown={(e) => {
+                      const c = e.currentTarget;
+                      const ctx = c.getContext("2d");
+                      c.setPointerCapture(e.pointerId);
+                      ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#000";
+                      const rect = c.getBoundingClientRect();
+                      const x = (e.clientX - rect.left) * (c.width / rect.width);
+                      const y = (e.clientY - rect.top) * (c.height / rect.height);
+                      ctx.beginPath();
+                      ctx.moveTo(x, y);
+                      c.dataset.drawing = "1";
+                    }}
+                    onPointerMove={(e) => {
+                      const c = e.currentTarget;
+                      if (c.dataset.drawing !== "1") return;
+                      const ctx = c.getContext("2d");
+                      const rect = c.getBoundingClientRect();
+                      const x = (e.clientX - rect.left) * (c.width / rect.width);
+                      const y = (e.clientY - rect.top) * (c.height / rect.height);
+                      ctx.lineTo(x, y);
+                      ctx.stroke();
+                    }}
+                    onPointerUp={(e) => { e.currentTarget.dataset.drawing = "0"; }}
+                    onPointerLeave={(e) => { e.currentTarget.dataset.drawing = "0"; }}
+                  />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                   <div style={{ fontSize: 10, color: "var(--muted)" }}>用手指在上方簽名</div>
@@ -2364,33 +2389,6 @@ function MainApp({ user, onLogout, projects = [] }) {
                   {sigLoading ? "提交中..." : "確認簽收"}
                 </button>
               </div>
-
-              {/* Canvas drawing logic — inject after mount */}
-              <script dangerouslySetInnerHTML={{ __html: `
-                (function() {
-                  var c = document.getElementById("sigCanvas");
-                  if (!c) return;
-                  var ctx = c.getContext("2d");
-                  var drawing = false;
-                  var rect = c.getBoundingClientRect();
-                  ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#000";
-                  function getXY(e) {
-                    var t = e.touches ? e.touches[0] : e;
-                    rect = c.getBoundingClientRect();
-                    return [
-                      (t.clientX - rect.left) * (c.width / rect.width),
-                      (t.clientY - rect.top) * (c.height / rect.height)
-                    ];
-                  }
-                  function start(e) { e.preventDefault(); drawing = true; var p = getXY(e); ctx.beginPath(); ctx.moveTo(p[0], p[1]); }
-                  function move(e) { e.preventDefault(); if (!drawing) return; var p = getXY(e); ctx.lineTo(p[0], p[1]); ctx.stroke(); }
-                  function end() { drawing = false; }
-                  c.addEventListener("mousedown", start); c.addEventListener("mousemove", move);
-                  c.addEventListener("mouseup", end); c.addEventListener("mouseleave", end);
-                  c.addEventListener("touchstart", start, {passive:false}); c.addEventListener("touchmove", move, {passive:false});
-                  c.addEventListener("touchend", end);
-                })();
-              `}} />
             </div>
           );
         })()}
