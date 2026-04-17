@@ -1198,24 +1198,34 @@ function MainApp({ user, onLogout, projects = [] }) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   };
 
+  // Clock tick — only active on the GPS screen to avoid re-rendering
+  // MainApp (and thus every screen component) 60 times per minute.
+  // When on other screens, clock is frozen at the last value — no
+  // visual impact since only GpsScreen shows the live clock.
   useEffect(() => {
+    if (screen !== "gps") return; // ← KEY FIX: no tick on other screens
     const t = setInterval(() => setClockTick(new Date()), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [screen]);
 
-  // Auto-checkout at set time if not signed out
+  // Auto-checkout — separate 30s interval (was piggy-backing on the 1s
+  // clock tick, causing 60 effect-runs per minute). Only checks once
+  // every 30 seconds, which is precise enough for a 19:00 auto-checkout.
   useEffect(() => {
     if (!checkedIn || checkedOut) return;
-    const now = clockTick;
-    const h = now.getHours();
-    const m = now.getMinutes();
-    if (h === AUTO_CHECKOUT_HOUR && m === AUTO_CHECKOUT_MIN) {
-      const t = `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
-      setCheckedOut(true);
-      setCheckOutTime(t + " （系統自動）");
-      showToast("🕖 已自動簽退（" + t + "）");
-    }
-  }, [clockTick, checkedIn, checkedOut]);
+    const check = () => {
+      const now = new Date();
+      if (now.getHours() === AUTO_CHECKOUT_HOUR && now.getMinutes() === AUTO_CHECKOUT_MIN) {
+        const t = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+        setCheckedOut(true);
+        setCheckOutTime(t + " （系統自動）");
+        showToast("🕖 已自動簽退（" + t + "）");
+      }
+    };
+    check(); // check immediately
+    const id = setInterval(check, 30000); // then every 30s
+    return () => clearInterval(id);
+  }, [checkedIn, checkedOut]);
 
   // ── Live GPS monitoring ─────────────────────────────────────────────────
   // selectedProject is either a string (name only) or object {name,lat,lng}
@@ -3232,9 +3242,18 @@ function MainApp({ user, onLogout, projects = [] }) {
     );
   };
 
-  const screens = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, docs: DocsScreen, salary: SalaryScreen, leave: LeaveScreen, pin: PinScreen };
+  // Render the active screen by calling its function directly (NOT as a
+  // JSX component via <ActiveScreen />). This avoids the #1 cause of
+  // flickering: every MainApp re-render re-defines the screen functions,
+  // so <ActiveScreen /> sees a NEW component identity each time → React
+  // unmounts the old tree and mounts a fresh one → visible flash.
+  //
+  // Calling ScreenFn() directly inlines its JSX into MainApp's own tree.
+  // React's reconciler then diffs the actual elements (divs, inputs, etc.)
+  // instead of comparing component identities — no unnecessary remounts.
+  const SCREEN_FNS = { home: HomeScreen, safety: SafetyScreen, gps: GpsScreen, progress: ProgressScreen, workorder: WorkOrderScreen, docs: DocsScreen, salary: SalaryScreen, leave: LeaveScreen, pin: PinScreen };
   const SCREEN_LABELS = { home: "主頁", safety: "安全守則簽署", gps: "GPS 考勤", progress: "施工進度回報", workorder: "每日工序申報", docs: "文件上傳", salary: "我的薪酬", leave: "請假申請", pin: "更改 PIN 碼" };
-  const ActiveScreen = screens[screen];
+  const renderScreen = SCREEN_FNS[screen] || HomeScreen;
 
   return (
     <>
@@ -3277,7 +3296,7 @@ function MainApp({ user, onLogout, projects = [] }) {
 
         {/* Content */}
         <div className="content">
-          <ActiveScreen />
+          {renderScreen()}
         </div>
 
         {/* Bottom Nav */}
