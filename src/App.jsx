@@ -1155,14 +1155,15 @@ function MainApp({ user, onLogout, projects = [] }) {
   // Attendance state
   const [todayAssignments, setTodayAssignments] = useState([]);
 
-  // Fetch today's assignments for this worker
+  // Fetch today's assignments — re-fetches when screen changes (esp.
+  // entering GPS page) so admin dispatch changes appear without app restart.
   useEffect(() => {
     if (!user?.id) return;
     const today = new Date().toISOString().split("T")[0];
     fetch(`${SUPABASE_URL}/rest/v1/project_assignments?employee_id=eq.${user.id}&start_date=lte.${today}&end_date=gte.${today}&order=created_at.desc`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     }).then(r => r.json()).then(d => { if (Array.isArray(d)) setTodayAssignments(d); }).catch(() => {});
-  }, [user?.id]);
+  }, [user?.id, screen]); // re-fetch on every screen change
 
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkedOut, setCheckedOut] = useState(false);
