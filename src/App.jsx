@@ -809,6 +809,15 @@ const EMPLOYEE_DB = [
 // Hoisted out of the screen components so the array reference is stable
 // across renders — otherwise every MainApp re-render creates a fresh
 // array, React sees a new .map() input, and the site-picker list flashes.
+// Bottom nav tabs — hoisted to module scope so the array identity is stable.
+const MAIN_NAV = [
+  { id: "home",      icon: "🏠", label: "主頁" },
+  { id: "workorder", icon: "📋", label: "申報" },
+  { id: "gps",       icon: "📍", label: "簽到" },
+  { id: "docs",      icon: "📁", label: "文件" },
+  { id: "salary",    icon: "💰", label: "薪酬" },
+];
+
 const FALLBACK_PROJECT_NAMES = [
   "EC-550屯門醫院輕鐵站行人天橋NF411",
   "EC-590大圓街GDS數據中心升降機",
@@ -1235,10 +1244,15 @@ function MainApp({ user, onLogout, projects = [] }) {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setGpsError("此裝置不支援 GPS 定位");
+      if (screen === "gps") setGpsError("此裝置不支援 GPS 定位");
       return;
     }
-    // Always watch position when on GPS screen (or checked in)
+    // ONLY watch GPS when on GPS screen OR actively checked in (for zone
+    // exit monitoring). On all other screens (Home, WorkOrder, Progress,
+    // Docs, Salary, Leave, PIN) — no watching = no state updates = no
+    // re-renders = no flickering.
+    const needWatch = screen === "gps" || (checkedIn && !checkedOut);
+    if (!needWatch) return;
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude, longitude, accuracy } = pos.coords;
@@ -1278,7 +1292,7 @@ function MainApp({ user, onLogout, projects = [] }) {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [checkedIn, checkedOut, siteLat, siteLng]);
+  }, [screen, checkedIn, checkedOut, siteLat, siteLng]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -1291,13 +1305,8 @@ function MainApp({ user, onLogout, projects = [] }) {
   const presentDays = ATTENDANCE_DATA.filter(d => d.status === "present" || d.status === "today").length;
   const absentDays = ATTENDANCE_DATA.filter(d => d.status === "absent").length;
 
-  const NAV = [
-    { id: "home",      icon: "🏠", label: "主頁" },
-    { id: "workorder", icon: "📋", label: "申報" },
-    { id: "gps",       icon: "📍", label: "簽到" },
-    { id: "docs",      icon: "📁", label: "文件" },
-    { id: "salary",    icon: "💰", label: "薪酬" },
-  ];
+  // NAV defined at module scope (MAIN_NAV) to avoid re-creating the array
+  // on every render — this was another source of minor thrash.
 
   // ── Screens ────────────────────────────────────
 
@@ -3301,7 +3310,7 @@ function MainApp({ user, onLogout, projects = [] }) {
 
         {/* Bottom Nav */}
         <div className="bottom-nav">
-          {NAV.map(n => (
+          {MAIN_NAV.map(n => (
             <div key={n.id} className={`nav-tab ${screen === n.id ? "active" : ""}`} onClick={() => setScreen(n.id)}>
               <div className="nav-indicator" />
               <div className="nav-tab-icon">{n.icon}</div>
