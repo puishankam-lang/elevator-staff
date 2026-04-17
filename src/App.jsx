@@ -1172,6 +1172,22 @@ function MainApp({ user, onLogout, projects = [] }) {
 
   // Salary view
   const [salaryMonth, setSalaryMonth] = useState(0);
+  const [sigOpen, setSigOpen] = useState(false);
+  const [sigSigned, setSigSigned] = useState({}); // { "2025年7月": { signature_data, signed_at, ... } }
+  const [sigLoading, setSigLoading] = useState(false);
+
+  // Load existing signatures for this employee
+  useEffect(() => {
+    if (!user?.id) return;
+    fetch(`${SUPABASE_URL}/rest/v1/payroll_signatures?employee_id=eq.${user.id}&order=signed_at.desc&limit=24`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.json()).then(d => {
+      if (!Array.isArray(d)) return;
+      const map = {};
+      d.forEach(s => { map[s.payroll_month] = s; });
+      setSigSigned(map);
+    }).catch(() => {});
+  }, [user?.id]);
 
   // Haversine distance formula (metres)
   const getDistance = (lat1, lng1, lat2, lng2) => {
@@ -2240,6 +2256,144 @@ function MainApp({ user, onLogout, projects = [] }) {
             💡 MPF 係你的退休儲蓄，僱主供款部分係額外福利，唔係從你薪酬扣除。
           </div>
         </div>
+
+        {/* ── Salary Receipt Acknowledgment ── */}
+        {(() => {
+          const monthKey = cur.month;
+          const existingSig = sigSigned[monthKey];
+          return existingSig ? (
+            <div style={{ background: "rgba(34,197,94,0.08)", border: "1.5px solid rgba(34,197,94,0.3)", borderRadius: 14, padding: "16px", marginTop: 16, textAlign: "center" }}>
+              <div style={{ fontSize: 28, marginBottom: 6 }}>✅</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--green)", marginBottom: 4 }}>已簽收 — {monthKey}</div>
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                簽署時間：{new Date(existingSig.signed_at).toLocaleString("zh-HK")}
+                {existingSig.gps_lat && ` · GPS: ${Number(existingSig.gps_lat).toFixed(4)}, ${Number(existingSig.gps_lng).toFixed(4)}`}
+              </div>
+              {existingSig.signature_data && (
+                <img src={existingSig.signature_data} alt="簽名"
+                  style={{ maxWidth: 200, maxHeight: 60, marginTop: 8, border: "1px solid var(--border)", borderRadius: 8, background: "#fff" }} />
+              )}
+            </div>
+          ) : (
+            <div style={{ marginTop: 16 }}>
+              <button className="big-btn primary" onClick={() => setSigOpen(true)}>
+                <span className="big-btn-icon">✍️</span>
+                確認簽收 {monthKey} 薪酬
+              </button>
+              <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", marginTop: 6 }}>
+                簽署後將記錄時間、GPS 位置及電子簽名
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Signature Modal ── */}
+        {sigOpen && (() => {
+          const monthKey = SALARY_HISTORY[salaryMonth].month;
+          const handleSign = async () => {
+            const canvas = document.getElementById("sigCanvas");
+            if (!canvas) return;
+            const sigData = canvas.toDataURL("image/png");
+            // Check if canvas has actual content (not blank)
+            const ctx = canvas.getContext("2d");
+            const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let hasContent = false;
+            for (let i = 3; i < pixels.length; i += 4) { if (pixels[i] > 0) { hasContent = true; break; } }
+            if (!hasContent) { showToast("⚠️ 請先簽名", "error"); return; }
+
+            setSigLoading(true);
+            // Get GPS
+            let lat = null, lng = null, acc = null;
+            try {
+              const pos = await new Promise((resolve, reject) =>
+                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 })
+              );
+              lat = pos.coords.latitude; lng = pos.coords.longitude; acc = Math.round(pos.coords.accuracy);
+            } catch(e) { /* GPS optional */ }
+
+            try {
+              await sbInsert("payroll_signatures", {
+                employee_id: EMPLOYEE.id,
+                payroll_month: monthKey,
+                signature_data: sigData,
+                gps_lat: lat, gps_lng: lng, gps_accuracy: acc,
+              });
+              setSigSigned(prev => ({ ...prev, [monthKey]: {
+                signature_data: sigData, signed_at: new Date().toISOString(),
+                gps_lat: lat, gps_lng: lng,
+              }}));
+              setSigOpen(false);
+              showToast("✅ 薪酬簽收完成！");
+            } catch(e) {
+              showToast("❌ 簽收失敗：" + e.message, "error");
+            }
+            setSigLoading(false);
+          };
+
+          return (
+            <div onClick={() => !sigLoading && setSigOpen(false)}
+              style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.8)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+              <div onClick={e => e.stopPropagation()}
+                style={{ background: "var(--surface)", border: "1.5px solid var(--green)", borderRadius: 18, padding: 20, width: "100%", maxWidth: 380 }}>
+                <div style={{ fontSize: 17, fontWeight: 900, color: "var(--text)", marginBottom: 4, textAlign: "center" }}>✍️ 電子簽名</div>
+                <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", marginBottom: 14 }}>
+                  {SALARY_HISTORY[salaryMonth].month} — HK${(SALARY_HISTORY[salaryMonth].amount).toLocaleString()}
+                </div>
+
+                {/* Legal text */}
+                <div style={{ background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)", borderRadius: 10, padding: "10px 12px", marginBottom: 14, fontSize: 11, color: "var(--blue)", lineHeight: 1.6 }}>
+                  📋 本人確認已收到上述全數薪金，並無異議。<br/>
+                  By signing, I confirm that I have received the full amount of salary as stated above without any dispute.
+                </div>
+
+                {/* Canvas */}
+                <div style={{ background: "#fff", borderRadius: 10, overflow: "hidden", marginBottom: 10, border: "2px solid var(--border)" }}>
+                  <canvas id="sigCanvas" width="340" height="120"
+                    style={{ width: "100%", height: 120, touchAction: "none", cursor: "crosshair" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, color: "var(--muted)" }}>用手指在上方簽名</div>
+                  <button onClick={() => {
+                    const c = document.getElementById("sigCanvas");
+                    if (c) { const ctx = c.getContext("2d"); ctx.clearRect(0, 0, c.width, c.height); }
+                  }} style={{ background: "var(--surface2)", border: "1px solid var(--border)", color: "var(--muted)", borderRadius: 8, padding: "4px 12px", fontSize: 11, cursor: "pointer", fontFamily: "var(--font)" }}>↺ 清除</button>
+                </div>
+
+                <button className={`big-btn ${sigLoading ? "disabled" : "success"}`} onClick={handleSign} disabled={sigLoading}>
+                  <span className="big-btn-icon">{sigLoading ? "⏳" : "✅"}</span>
+                  {sigLoading ? "提交中..." : "確認簽收"}
+                </button>
+              </div>
+
+              {/* Canvas drawing logic — inject after mount */}
+              <script dangerouslySetInnerHTML={{ __html: `
+                (function() {
+                  var c = document.getElementById("sigCanvas");
+                  if (!c) return;
+                  var ctx = c.getContext("2d");
+                  var drawing = false;
+                  var rect = c.getBoundingClientRect();
+                  ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.strokeStyle = "#000";
+                  function getXY(e) {
+                    var t = e.touches ? e.touches[0] : e;
+                    rect = c.getBoundingClientRect();
+                    return [
+                      (t.clientX - rect.left) * (c.width / rect.width),
+                      (t.clientY - rect.top) * (c.height / rect.height)
+                    ];
+                  }
+                  function start(e) { e.preventDefault(); drawing = true; var p = getXY(e); ctx.beginPath(); ctx.moveTo(p[0], p[1]); }
+                  function move(e) { e.preventDefault(); if (!drawing) return; var p = getXY(e); ctx.lineTo(p[0], p[1]); ctx.stroke(); }
+                  function end() { drawing = false; }
+                  c.addEventListener("mousedown", start); c.addEventListener("mousemove", move);
+                  c.addEventListener("mouseup", end); c.addEventListener("mouseleave", end);
+                  c.addEventListener("touchstart", start, {passive:false}); c.addEventListener("touchmove", move, {passive:false});
+                  c.addEventListener("touchend", end);
+                })();
+              `}} />
+            </div>
+          );
+        })()}
 
         <div style={{ background: "rgba(96,165,250,0.05)", border: "1px dashed rgba(96,165,250,0.2)", borderRadius: 14, padding: "14px 16px", marginTop: 16, fontSize: 12, color: "var(--muted)", textAlign: "center", lineHeight: 1.6 }}>
           📋 發薪記錄將於系統正式上線後啟用
