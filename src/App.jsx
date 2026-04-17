@@ -854,7 +854,7 @@ const genAttendance = (presentDays) => {
 };
 
 // ── Login Screen ───────────────────────────────────
-function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB }) {
+function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB, rememberMe, setRememberMe }) {
   const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
@@ -925,6 +925,24 @@ function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB }) {
             </div>
 
             {error && <div style={{ fontSize: 13, color: "var(--red)", textAlign: "center", marginBottom: 12 }}>⚠️ {error}</div>}
+
+            {/* Remember Me checkbox */}
+            <div onClick={() => setRememberMe(!rememberMe)}
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", marginBottom: 8, cursor: "pointer", userSelect: "none" }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: 6,
+                border: `2px solid ${rememberMe ? "var(--orange)" : "var(--border)"}`,
+                background: rememberMe ? "var(--orange)" : "transparent",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all 0.15s", flexShrink: 0,
+              }}>
+                {rememberMe && <span style={{ color: "#fff", fontSize: 13, fontWeight: 900 }}>✓</span>}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>記住我</div>
+                <div style={{ fontSize: 11, color: "var(--muted)" }}>30 日內自動登入，無需重新輸入</div>
+              </div>
+            </div>
 
             <button onClick={handlePhoneNext} style={{ width: "100%", background: "linear-gradient(135deg, var(--orange), var(--orange-d))", border: "none", borderRadius: 14, padding: "18px", fontSize: 17, fontWeight: 900, color: "#fff", cursor: "pointer", fontFamily: "var(--font)", boxShadow: "0 8px 24px rgba(255,107,26,0.3)" }}>
               下一步 →
@@ -1020,16 +1038,39 @@ async function syncOfflineQueue(supabaseUrl, supabaseKey) {
   return synced;
 }
 
+// ── Session persistence (Remember Me) ─────────────────────────────────────────
+const SESSION_KEY = "cf_staff_session";
+const SESSION_MAX_DAYS = 30;
+
+function loadSavedSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const { emp, loginAt } = JSON.parse(raw);
+    // Expire after 30 days
+    if (Date.now() - loginAt > SESSION_MAX_DAYS * 86400000) {
+      localStorage.removeItem(SESSION_KEY);
+      return null;
+    }
+    return emp;
+  } catch { return null; }
+}
+
+function saveSession(emp) {
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ emp, loginAt: Date.now() })); } catch {}
+}
+
+function clearSession() {
+  try { localStorage.removeItem(SESSION_KEY); } catch {}
+}
+
 export default function App() {
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(() => loadSavedSession());
   const [loginError, setLoginError] = useState("");
   const [employees, setEmployees] = useState(EMPLOYEE_DB);
   const [projects, setProjects] = useState([]);
   const [dbReady, setDbReady] = useState(false);
-  // offlineQueue state + auto-sync live inside MainApp (post-login), since that
-  // is where the queue is written to and the UI referencing it is rendered.
-  // Keeping them here caused a ReferenceError from MainApp and referenced an
-  // EMPLOYEE variable that only exists after login.
+  const [rememberMe, setRememberMe] = useState(true);
 
   // Load employees + projects from Supabase on mount
   useEffect(() => {
@@ -1077,6 +1118,7 @@ export default function App() {
 
   const handleLogin = async (emp) => {
     setCurrentUser(emp);
+    if (rememberMe) saveSession(emp);
     // Record login time to attendance
     try {
       const today = new Date().toISOString().split("T")[0];
@@ -1089,7 +1131,11 @@ export default function App() {
     } catch(e) {} // Silent fail
   };
 
-  const handleLogout = () => { setCurrentUser(null); setLoginError(""); };
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setLoginError("");
+    clearSession();
+  };
 
   if (!dbReady) {
     return (
@@ -1108,7 +1154,7 @@ export default function App() {
     return (
       <>
         <style>{S}</style>
-        <LoginScreen onLogin={handleLogin} error={loginError} setError={setLoginError} employees={employees} />
+        <LoginScreen onLogin={handleLogin} error={loginError} setError={setLoginError} employees={employees} rememberMe={rememberMe} setRememberMe={setRememberMe} />
       </>
     );
   }
