@@ -1153,6 +1153,17 @@ function MainApp({ user, onLogout, projects = [] }) {
   };
 
   // Attendance state
+  const [todayAssignments, setTodayAssignments] = useState([]);
+
+  // Fetch today's assignments for this worker
+  useEffect(() => {
+    if (!user?.id) return;
+    const today = new Date().toISOString().split("T")[0];
+    fetch(`${SUPABASE_URL}/rest/v1/project_assignments?employee_id=eq.${user.id}&start_date=lte.${today}&end_date=gte.${today}&order=created_at.desc`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.json()).then(d => { if (Array.isArray(d)) setTodayAssignments(d); }).catch(() => {});
+  }, [user?.id]);
+
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkedOut, setCheckedOut] = useState(false);
   const [showManualSite, setShowManualSite] = useState(false);
@@ -1578,9 +1589,15 @@ function MainApp({ user, onLogout, projects = [] }) {
   };
 
   const GpsScreen = () => {
-    // Projects can be strings (name only) or objects {name, lat, lng}.
-    // Fallback hoisted to module scope so the array reference is stable.
-    const SITE_LIST = projects.length > 0 ? projects : FALLBACK_SITE_NAMES;
+    // Show ONLY today's assigned sites if admin has set up dispatch.
+    // Falls back to full project list if no assignments exist (backward compat).
+    const assignedSites = todayAssignments.map(a => {
+      // Try to find matching project with GPS coords
+      const match = projects.find(p => p.name === a.site_name);
+      return match || a.site_name;
+    });
+    const hasDispatch = assignedSites.length > 0;
+    const SITE_LIST = hasDispatch ? assignedSites : (projects.length > 0 ? projects : FALLBACK_SITE_NAMES);
     const hasSiteCoords = siteLat && siteLng;
     const coordStr = userLat && userLng
       ? `${userLat.toFixed(5)}°N  ${userLng.toFixed(5)}°E`
@@ -1712,7 +1729,7 @@ function MainApp({ user, onLogout, projects = [] }) {
               }}
               style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${selectedProject?"var(--orange)":"var(--border)"}`, color:selectedProject?"var(--text)":"var(--muted)", borderRadius:14, padding:"14px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:16, fontWeight:600 }}
             >
-              <option value="">── 選擇今日工地 ──</option>
+              <option value="">{hasDispatch ? "── 今日指定工地 ──" : "── 選擇今日工地 ──"}</option>
               {SITE_LIST.map((p) => {
                 const name = typeof p === "object" ? p.name : p;
                 const pKey = (typeof p === "object" && p.id) ? p.id : name;
