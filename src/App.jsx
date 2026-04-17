@@ -1155,6 +1155,8 @@ function MainApp({ user, onLogout, projects = [] }) {
   // Attendance state
   const [checkedIn, setCheckedIn] = useState(false);
   const [checkedOut, setCheckedOut] = useState(false);
+  const [showManualSite, setShowManualSite] = useState(false);
+  const [manualSiteName, setManualSiteName] = useState("");
   const [checkInTime, setCheckInTime] = useState(null);
   const [checkOutTime, setCheckOutTime] = useState(null);
   const [clockTick, setClockTick] = useState(new Date());
@@ -1622,7 +1624,7 @@ function MainApp({ user, onLogout, projects = [] }) {
             check_in_lng: longitude,
             check_in_accuracy: Math.round(accuracy),
             status: "present",
-            site: sn
+            site: showManualSite ? `[手動] ${sn}` : sn
           };
           try {
             await sbInsert("attendance", attendanceRow);
@@ -1728,6 +1730,39 @@ function MainApp({ user, onLogout, projects = [] }) {
               <div style={{ fontSize:11, color:"var(--orange)", marginBottom:12, display:"flex", gap:6, alignItems:"center" }}>
                 <span>⚠️</span>
                 此工地未設定 GPS 座標（管理員可在 Admin 系統新增），仍可正常簽到
+              </div>
+            )}
+
+            {/* Manual site entry — for sites not yet in the system */}
+            {!showManualSite ? (
+              <div onClick={() => setShowManualSite(true)}
+                style={{ fontSize:12, color:"var(--blue)", textAlign:"center", cursor:"pointer", padding:"8px 0", marginBottom:8 }}>
+                🔍 搵唔到工地？<span style={{ textDecoration:"underline", fontWeight:700 }}>手動新增</span>
+              </div>
+            ) : (
+              <div style={{ background:"rgba(96,165,250,0.06)", border:"1.5px solid rgba(96,165,250,0.3)", borderRadius:14, padding:"14px 16px", marginBottom:14 }}>
+                <div style={{ fontSize:12, fontWeight:700, color:"var(--blue)", marginBottom:8 }}>📝 手動輸入工地名稱</div>
+                <input
+                  type="text"
+                  value={manualSiteName}
+                  onChange={e => {
+                    setManualSiteName(e.target.value);
+                    if (e.target.value.trim()) {
+                      selectedProjectRef.current = e.target.value.trim();
+                      setSelectedProjectState(e.target.value.trim());
+                    }
+                  }}
+                  placeholder="例：旺角臨時維修、陳生屋企..."
+                  style={{ width:"100%", background:"var(--surface)", border:"1.5px solid var(--blue)", color:"var(--text)", borderRadius:10, padding:"12px 14px", fontSize:14, fontFamily:"var(--font)", fontWeight:600, marginBottom:8 }}
+                />
+                <div style={{ fontSize:10, color:"var(--muted)", lineHeight:1.6 }}>
+                  💡 GPS 座標會自動記錄，管理員可在後台查看你的實際位置。<br/>
+                  此記錄會標記為「手動新增」以供管理員核實。
+                </div>
+                <button onClick={() => { setShowManualSite(false); setManualSiteName(""); }}
+                  style={{ marginTop:8, background:"none", border:"1px solid var(--border)", color:"var(--muted)", borderRadius:8, padding:"4px 12px", fontSize:11, cursor:"pointer", fontFamily:"var(--font)" }}>
+                  ← 返回工地清單
+                </button>
               </div>
             )}
           </>
