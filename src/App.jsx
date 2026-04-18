@@ -1159,10 +1159,10 @@ export default function App() {
     );
   }
 
-  return <MainApp user={currentUser} onLogout={handleLogout} projects={projects} />;
+  return <MainApp user={currentUser} onLogout={handleLogout} projects={projects} allEmployees={employees} />;
 }
 
-function MainApp({ user, onLogout, projects = [] }) {
+function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
   const EMPLOYEE = user;
   const ATTENDANCE_DATA = genAttendance(user.presentDays);
   const SALARY_HISTORY = user.salaryHistory;
@@ -2675,7 +2675,7 @@ function MainApp({ user, onLogout, projects = [] }) {
       "緊急照明", "警報系統", "通風系統",
     ];
 
-    const ALL_EMPLOYEES = (EMPLOYEE_DB || []).map(e => e.name);
+    const ALL_EMPLOYEES = allEmployees.length > 0 ? allEmployees.map(e => e.name) : (EMPLOYEE_DB || []).map(e => e.name);
 
     // Use MainApp-level state via wo* variables
     const workSite = woWorkSite; const setWorkSite = setWoWorkSite;
