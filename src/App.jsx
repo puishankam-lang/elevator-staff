@@ -1079,7 +1079,174 @@ function clearSession() {
   try { localStorage.removeItem(SESSION_KEY); } catch {}
 }
 
+// ── Public Sub-contractor Upload Portal (no login) ───────────────────────────
+function ContractorUploadPortal({ token }) {
+  const [worker, setWorker] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState({});
+  const [docs, setDocs] = useState([]);
+  const [toast, setToast] = useState(null);
+
+  const DOC_TYPES = [
+    { key: "greencard", label: "平安咭（綠咭）", icon: "🪪", required: true },
+    { key: "id",        label: "身份證副本",      icon: "🆔", required: true },
+    { key: "address",   label: "住址證明",        icon: "🏠", required: true },
+    { key: "license",   label: "專業證書",        icon: "📜", required: false },
+    { key: "other",     label: "其他證書",        icon: "📄", required: false },
+  ];
+
+  const showTst = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast(null), 3000); };
+
+  useEffect(() => {
+    fetch(`${SUPABASE_URL}/rest/v1/subcontractor_workers?upload_token=eq.${token}&limit=1`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.json()).then(d => {
+      if (Array.isArray(d) && d[0]) {
+        setWorker(d[0]);
+        fetch(`${SUPABASE_URL}/rest/v1/subcontractor_docs?contractor_id=eq.${d[0].id}&order=created_at.desc`, {
+          headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+        }).then(r => r.json()).then(ds => { if (Array.isArray(ds)) setDocs(ds); });
+      }
+    }).finally(() => setLoading(false));
+  }, [token]);
+
+  const handleUpload = async (docType, file) => {
+    if (!file || !worker) return;
+    setUploading(u => ({ ...u, [docType]: true }));
+    try {
+      const ext = file.name.split('.').pop();
+      const filename = `${worker.id}_${docType}_${Date.now()}.${ext}`;
+      const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/subcontractor_docs/${filename}`, {
+        method: "POST",
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": file.type },
+        body: file,
+      });
+      if (!uploadRes.ok) throw new Error(await uploadRes.text());
+      const fileUrl = `${SUPABASE_URL}/storage/v1/object/public/subcontractor_docs/${filename}`;
+      const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/subcontractor_docs`, {
+        method: "POST",
+        headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, "Content-Type": "application/json", Prefer: "return=representation" },
+        body: JSON.stringify({
+          contractor_id: worker.id,
+          contractor_name: worker.contractor_name || worker.name,
+          doc_type: docType,
+          file_url: fileUrl,
+          file_name: file.name,
+          status: "pending_review",
+          uploaded_from_token: token,
+        }),
+      });
+      const saved = await insertRes.json();
+      setDocs(prev => [saved[0], ...prev]);
+      showTst(`✅ 已成功上傳 ${DOC_TYPES.find(d => d.key === docType)?.label}`);
+    } catch (e) { showTst(`❌ 上傳失敗：${e.message}`, "error"); }
+    setUploading(u => ({ ...u, [docType]: false }));
+  };
+
+  const uploadedTypes = new Set(docs.map(d => d.doc_type));
+  const requiredDone = DOC_TYPES.filter(d => d.required && uploadedTypes.has(d.key)).length;
+  const requiredTotal = DOC_TYPES.filter(d => d.required).length;
+
+  if (loading) return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)" }}>載入中...</div>
+  );
+  if (!worker) return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", padding: 20, color: "var(--text)" }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+      <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 6 }}>連結無效</div>
+      <div style={{ fontSize: 13, color: "var(--muted)", textAlign: "center" }}>請聯絡管理員重新取得上傳連結</div>
+    </div>
+  );
+
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "20px 16px", fontFamily: "var(--font)", color: "var(--text)" }}>
+      {toast && (
+        <div style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", background: toast.type === "error" ? "#d63030" : "#22c55e", color: "#fff", padding: "10px 20px", borderRadius: 10, zIndex: 1000, fontWeight: 700, fontSize: 13 }}>
+          {toast.msg}
+        </div>
+      )}
+      <div style={{ maxWidth: 420, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 20 }}>
+          <div style={{ width: 60, height: 60, background: "linear-gradient(135deg, #FF6B1A, #e55a0f)", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 30, margin: "0 auto 10px" }}>📤</div>
+          <div style={{ fontSize: 18, fontWeight: 900 }}>判頭文件上傳</div>
+          <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>免登入 · 安全上傳</div>
+        </div>
+
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 3 }}>判頭員工</div>
+          <div style={{ fontSize: 15, fontWeight: 800 }}>{worker.name}</div>
+          {worker.contractor_name && <div style={{ fontSize: 11, color: "#FF6B1A", marginTop: 2 }}>🏢 {worker.contractor_name}</div>}
+        </div>
+
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 14px", marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 700 }}>必須文件進度</span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: requiredDone === requiredTotal ? "#22c55e" : "#FF6B1A" }}>{requiredDone}/{requiredTotal}</span>
+          </div>
+          <div style={{ height: 6, background: "#1a1f2e", borderRadius: 3, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${(requiredDone/requiredTotal)*100}%`, background: requiredDone === requiredTotal ? "#22c55e" : "#FF6B1A", transition: "width 0.3s" }} />
+          </div>
+        </div>
+
+        {DOC_TYPES.map(dt => {
+          const uploaded = docs.filter(d => d.doc_type === dt.key);
+          const isUploading = uploading[dt.key];
+          return (
+            <div key={dt.key} style={{ background: "var(--surface)", border: `1.5px solid ${uploaded.length > 0 ? "#22c55e" : dt.required ? "#FF6B1A" : "var(--border)"}`, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: uploaded.length > 0 ? 8 : 0 }}>
+                <div style={{ fontSize: 24 }}>{dt.icon}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>
+                    {dt.label} {dt.required && <span style={{ color: "#FF6B1A", fontSize: 10 }}>*必須</span>}
+                  </div>
+                  <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                    {uploaded.length > 0 ? `✅ 已上傳 ${uploaded.length} 個文件` : "尚未上傳"}
+                  </div>
+                </div>
+                <label style={{ background: "#FF6B1A", color: "#fff", padding: "6px 12px", borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap" }}>
+                  {isUploading ? "上傳中..." : uploaded.length > 0 ? "+ 加更多" : "📷 上傳"}
+                  <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} disabled={isUploading}
+                    onChange={e => { if (e.target.files?.[0]) { handleUpload(dt.key, e.target.files[0]); e.target.value = ""; } }} />
+                </label>
+              </div>
+              {uploaded.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                  {uploaded.map(u => (
+                    <a key={u.id} href={u.file_url} target="_blank" rel="noreferrer"
+                      style={{ background: "#0d0f12", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", fontSize: 10, color: "#22c55e", textDecoration: "none" }}>
+                      📎 {new Date(u.created_at).toLocaleDateString("zh-HK", { month: "short", day: "numeric" })}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <div style={{ marginTop: 20, padding: "10px 14px", background: "rgba(255,107,26,0.06)", border: "1px solid rgba(255,107,26,0.25)", borderRadius: 10, fontSize: 11, color: "var(--muted)", lineHeight: 1.6 }}>
+          ℹ️ <strong style={{ color: "#FF6B1A" }}>重要提示：</strong><br/>
+          • 所有文件會自動儲存到系統，管理員會審核<br/>
+          • 請確保相片清晰可讀<br/>
+          • 支援格式：JPG, PNG, PDF<br/>
+          • 文件上傳後即時通知管理員
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 20, fontSize: 10, color: "var(--muted)" }}>
+          🔒 此頁面只用於收集文件，不會儲存任何密碼
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
+  // Check for public upload portal token BEFORE any login logic
+  const urlToken = (() => {
+    try { return new URLSearchParams(window.location.search).get("upload_token"); }
+    catch { return null; }
+  })();
+  if (urlToken) return <><style>{S}</style><ContractorUploadPortal token={urlToken} /></>;
+
   const [currentUser, setCurrentUser] = useState(() => loadSavedSession());
   const [loginError, setLoginError] = useState("");
   const [employees, setEmployees] = useState(EMPLOYEE_DB);
