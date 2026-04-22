@@ -3357,8 +3357,15 @@ PPE 包括：
 
     const ALL_EMPLOYEES = allEmployees.length > 0 ? allEmployees.map(e => e.name) : (EMPLOYEE_DB || []).map(e => e.name);
 
-    // Use MainApp-level state via wo* variables
-    const workSite = woWorkSite; const setWorkSite = setWoWorkSite;
+    // Auto-inherit GPS-selected site if woWorkSite is empty; keep GPS in sync on change
+    const gpsSiteName = typeof selectedProject === "object" ? selectedProject?.name : selectedProject;
+    const workSite = woWorkSite || gpsSiteName || "";
+    const setWorkSite = (val) => {
+      setWoWorkSite(val);
+      // Sync to GPS screen — find project with coords if available
+      const match = projects.find(p => (typeof p === "object" ? p.name : p) === val);
+      setSelectedProject(match || val);
+    };
     const liftNo = woLiftNo; const setLiftNo = setWoLiftNo;
     const workTime = woWorkTime; const setWorkTime = setWoWorkTime;
     const category = woCategory; const setCategory = setWoCategory;
@@ -3491,16 +3498,29 @@ PPE 包括：
         {/* ── STEP 1: Work Details ── */}
         {step === 1 && (
           <>
-            <div className="section-label">工地 *</div>
-            <select value={workSite} onChange={e=>setWorkSite(e.target.value)}
-              style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${workSite?"var(--orange)":"var(--border)"}`, color:workSite?"var(--text)":"var(--muted)", borderRadius:14, padding:"13px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:12, fontWeight:600 }}>
-              <option value="">── 選擇工地 ──</option>
-              {(projects.length > 0 ? projects : FALLBACK_SITE_NAMES).map((p) => {
-                const name = typeof p === "object" ? p.name : p;
-                const pKey = (typeof p === "object" && p.id) ? p.id : name;
-                return <option key={pKey} value={name}>{name}</option>;
-              })}
-            </select>
+            <div className="section-label">工地 * <span style={{ fontSize: 10, color: "var(--muted)", fontWeight: 400 }}>（跟隨派更管理）</span></div>
+            {(() => {
+              const assignedSiteNames = [...new Set(todayAssignments.map(a => a.site_name).filter(Boolean))];
+              const hasDispatch = assignedSiteNames.length > 0;
+              return (
+                <>
+                  <select value={workSite} onChange={e=>setWorkSite(e.target.value)}
+                    style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${workSite?"var(--orange)":"var(--border)"}`, color:workSite?"var(--text)":"var(--muted)", borderRadius:14, padding:"13px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:6, fontWeight:600 }}>
+                    <option value="">{hasDispatch ? "── 今日指定工地 ──" : "── 今日未獲分配工地 ──"}</option>
+                    {assignedSiteNames.map(name => <option key={name} value={name}>{name}</option>)}
+                  </select>
+                  {hasDispatch ? (
+                    <div style={{ fontSize: 10, color: "#22c55e", marginBottom: 10, padding: "4px 8px" }}>
+                      🎯 今日有 {assignedSiteNames.length} 個指派工地
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 10, color: "#f0c000", marginBottom: 10, padding: "6px 10px", background: "rgba(240,192,0,0.08)", border: "1px solid rgba(240,192,0,0.3)", borderRadius: 8 }}>
+                      ⚠️ 今日管理員未分配工地，請聯絡主管
+                    </div>
+                  )}
+                </>
+              );
+            })()}
 
             <div className="section-label">升降機編號（如適用）</div>
             <input value={liftNo} onChange={e=>setLiftNo(e.target.value)}
