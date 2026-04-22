@@ -1239,13 +1239,15 @@ function ContractorUploadPortal({ token }) {
   );
 }
 
+// Compute token once at module load — stable across renders
+const URL_UPLOAD_TOKEN = (() => {
+  try { return new URLSearchParams(window.location.search).get("upload_token"); }
+  catch { return null; }
+})();
+
 export default function App() {
-  // Check for public upload portal token BEFORE any login logic
-  const urlToken = (() => {
-    try { return new URLSearchParams(window.location.search).get("upload_token"); }
-    catch { return null; }
-  })();
-  if (urlToken) return <><style>{S}</style><ContractorUploadPortal token={urlToken} /></>;
+  // Public upload portal (no login) — stable gate using module-level token
+  if (URL_UPLOAD_TOKEN) return <><style>{S}</style><ContractorUploadPortal token={URL_UPLOAD_TOKEN} /></>;
 
   const [currentUser, setCurrentUser] = useState(() => loadSavedSession());
   const [loginError, setLoginError] = useState("");
