@@ -1378,10 +1378,12 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
 
   // Safety state
   const [safetyChecks, setSafetyChecks] = useState([false, false, false]);
+  const [internalChecks, setInternalChecks] = useState([false, false, false]);
   const [signed, setSigned] = useState(false);
   const [lastSafetyAck, setLastSafetyAck] = useState(null);
   const [siteAcks, setSiteAcks] = useState({}); // { siteName: { signed_at, valid_until } } — latest valid ack per site
   const [projectSearch, setProjectSearch] = useState("");
+  const [internalSignedToday, setInternalSignedToday] = useState(null); // today's internal_daily_signs record or null
 
   useEffect(() => {
     if (!EMPLOYEE?.id) return;
@@ -1401,6 +1403,13 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
         }
       });
       setSiteAcks(byBrand);
+    }).catch(() => {});
+    // Check if internal daily sign exists for today
+    const todayStr = new Date().toISOString().split("T")[0];
+    fetch(`${SUPABASE_URL}/rest/v1/internal_daily_signs?employee_id=eq.${EMPLOYEE.id}&sign_date=eq.${todayStr}&limit=1`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.json()).then(d => {
+      if (Array.isArray(d) && d[0]) setInternalSignedToday(d[0]);
     }).catch(() => {});
   }, [EMPLOYEE?.id]);
 
@@ -1735,28 +1744,49 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
     const canSign = allChecked && selectedProject !== "";
     const needReSign = safetyExpired || !lastSafetyAck;
 
+    const needInternalSign = !internalSignedToday;
+    const internalAllChecked = internalChecks.every(Boolean);
+    const combinedCanSign = allChecked && selectedProject !== "" && (!needInternalSign || internalAllChecked);
+
     const handleSign = async () => {
-      if (!canSign) return;
+      if (!combinedCanSign) return;
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
       const now = new Date();
       const validUntil = new Date(now);
       validUntil.setMonth(validUntil.getMonth() + 6);
       const siteNameStr = typeof selectedProject === "object" ? selectedProject.name : selectedProject;
+      const todayStr = now.toISOString().split("T")[0];
       try {
-        await sbInsert("safety_acknowledgments", {
-          employee_id: EMPLOYEE.id,
-          signed_at: now.toISOString(),
-          site: siteNameStr,
-          valid_until: validUntil.toISOString().split("T")[0],
-          document_version: "2026-04",
-        });
-        const newAck = { signed_at: now.toISOString(), valid_until: validUntil.toISOString().split("T")[0], site: siteNameStr };
-        setLastSafetyAck(newAck);
-        setSiteAcks(prev => ({ ...prev, [siteNameStr]: newAck }));
+        // Always create site-specific safety ack (unless already valid for this site)
+        if (!siteAcks[siteNameStr]) {
+          await sbInsert("safety_acknowledgments", {
+            employee_id: EMPLOYEE.id,
+            signed_at: now.toISOString(),
+            site: siteNameStr,
+            valid_until: validUntil.toISOString().split("T")[0],
+            document_version: "2026-04",
+          });
+          const newAck = { signed_at: now.toISOString(), valid_until: validUntil.toISOString().split("T")[0], site: siteNameStr };
+          setLastSafetyAck(newAck);
+          setSiteAcks(prev => ({ ...prev, [siteNameStr]: newAck }));
+        }
+        // Create internal daily sign if not yet signed today
+        if (needInternalSign) {
+          const internalRes = await sbInsert("internal_daily_signs", {
+            employee_id: EMPLOYEE.id,
+            sign_date: todayStr,
+            signed_at: now.toISOString(),
+            health_ok: internalChecks[0],
+            ppe_ok: internalChecks[1],
+            agree_internal: internalChecks[2],
+            site: siteNameStr,
+          });
+          if (Array.isArray(internalRes) && internalRes[0]) setInternalSignedToday(internalRes[0]);
+        }
       } catch(e) {}
       setSigned(true);
       setSignedTime(t);
-      showToast(`✅ ${siteNameStr} 安全守則簽署完成！`);
+      showToast(needInternalSign ? `✅ 已同時簽署 ${siteNameStr} 地盤守則 + 公司內部開工聲明` : `✅ ${siteNameStr} 安全守則簽署完成！`);
     };
 
     const PROJECTS_LIST = projects.length > 0 ? projects : FALLBACK_PROJECT_NAMES;
@@ -2127,6 +2157,44 @@ PPE 包括：
           </div>
         ))}
 
+        {/* Internal Daily Declaration — only show if not yet signed today */}
+        {needInternalSign && !currentSigned && (
+          <div style={{ marginTop: 14, padding: "12px 14px", background: "rgba(96,165,250,0.05)", border: "1.5px dashed #60a5fa", borderRadius: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#60a5fa", marginBottom: 4 }}>🏢 公司內部開工聲明（每日一次）</div>
+            <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 10, lineHeight: 1.5 }}>
+              為勞保合規及公司內部記錄，請一併確認以下聲明（全日只需確認一次）：
+            </div>
+            {[
+              { label: "今日身體健康，適合工作", sub: "如身體不適請即通知主管" },
+              { label: "已檢查個人防護裝備，狀態良好", sub: "頭盔、安全鞋、手套、背心等" },
+              { label: "同意遵守公司內部安全指引", sub: "包括器材、車輛、工序規定" },
+            ].map((item, i) => (
+              <div key={`int-${i}`}
+                className={`check-row ${internalChecks[i] ? "checked" : ""}`}
+                style={{ marginBottom: 6 }}
+                onClick={() => {
+                  const n = [...internalChecks]; n[i] = !n[i]; setInternalChecks(n);
+                }}>
+                <div className={`check-box ${internalChecks[i] ? "checked" : ""}`}>{internalChecks[i] ? "✓" : ""}</div>
+                <div>
+                  <div className="check-text">{item.label}</div>
+                  <div className="check-sub">{item.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {internalSignedToday && !currentSigned && (
+          <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(34,197,94,0.08)", border: "1px solid #22c55e", borderRadius: 10, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 16 }}>🏢</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#22c55e" }}>✅ 公司內部開工聲明（今日已完成）</div>
+              <div style={{ fontSize: 10, color: "var(--muted)" }}>簽署於 {new Date(internalSignedToday.signed_at).toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" })}</div>
+            </div>
+          </div>
+        )}
+
         {!needReSign && lastSafetyAck && !signed && (
           <div style={{ background: "rgba(34,197,94,0.08)", border: "1.5px solid #22c55e", borderRadius: 12, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ fontSize: 22 }}>✅</div>
@@ -2153,18 +2221,22 @@ PPE 包括：
           </div>
         ) : (
           <>
-            <div className="sign-area" style={{ opacity: canSign ? 1 : 0.5 }}>
+            <div className="sign-area" style={{ opacity: combinedCanSign ? 1 : 0.5 }}>
               <div style={{ fontSize: 28 }}>✍️</div>
               <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                {!selectedProject ? "請先選擇工程" : !allChecked ? "請勾選所有確認項目" : `點擊下方按鈕確認簽署 ${siteName}`}
+                {!selectedProject ? "請先選擇工程"
+                  : !allChecked ? "請勾選所有地盤守則項目"
+                  : (needInternalSign && !internalAllChecked) ? "請勾選所有內部開工聲明"
+                  : needInternalSign ? `點擊下方按鈕一併簽署 ${siteName} + 公司內部開工聲明`
+                  : `點擊下方按鈕確認簽署 ${siteName}`}
               </div>
             </div>
             <button
-              className={`big-btn ${canSign ? "success" : "disabled"}`}
+              className={`big-btn ${combinedCanSign ? "success" : "disabled"}`}
               onClick={handleSign}
             >
               <span className="big-btn-icon">✍️</span>
-              確認簽署安全守則
+              {needInternalSign ? "✍️ 確認簽署（地盤 + 公司內部）" : "確認簽署安全守則"}
             </button>
           </>
         )}
