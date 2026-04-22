@@ -1380,13 +1380,19 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
   const [safetyChecks, setSafetyChecks] = useState([false, false, false]);
   const [signed, setSigned] = useState(false);
   const [lastSafetyAck, setLastSafetyAck] = useState(null);
+  const [todaySignedSites, setTodaySignedSites] = useState([]);
+  const [projectSearch, setProjectSearch] = useState("");
 
   useEffect(() => {
     if (!EMPLOYEE?.id) return;
-    fetch(`${SUPABASE_URL}/rest/v1/safety_acknowledgments?employee_id=eq.${EMPLOYEE.id}&order=signed_at.desc&limit=1`, {
+    fetch(`${SUPABASE_URL}/rest/v1/safety_acknowledgments?employee_id=eq.${EMPLOYEE.id}&order=signed_at.desc&limit=10`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     }).then(r => r.json()).then(d => {
-      if (Array.isArray(d) && d.length > 0) setLastSafetyAck(d[0]);
+      if (!Array.isArray(d)) return;
+      if (d.length > 0) setLastSafetyAck(d[0]);
+      const today = new Date().toISOString().split("T")[0];
+      const signedToday = d.filter(a => a.signed_at && a.signed_at.startsWith(today) && a.site).map(a => a.site);
+      setTodaySignedSites([...new Set(signedToday)]);
     }).catch(() => {});
   }, [EMPLOYEE?.id]);
 
@@ -1727,87 +1733,147 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
       const now = new Date();
       const validUntil = new Date(now);
       validUntil.setMonth(validUntil.getMonth() + 6);
+      const siteNameStr = typeof selectedProject === "object" ? selectedProject.name : selectedProject;
       try {
         await sbInsert("safety_acknowledgments", {
           employee_id: EMPLOYEE.id,
           signed_at: now.toISOString(),
-          site: typeof selectedProject === "object" ? selectedProject.name : selectedProject,
+          site: siteNameStr,
           valid_until: validUntil.toISOString().split("T")[0],
           document_version: "2026-04",
         });
         setLastSafetyAck({ signed_at: now.toISOString(), valid_until: validUntil.toISOString().split("T")[0] });
+        setTodaySignedSites(prev => prev.includes(siteNameStr) ? prev : [...prev, siteNameStr]);
       } catch(e) {}
       setSigned(true);
       setSignedTime(t);
-      showToast(`✅ 安全守則簽署完成！有效至 ${validUntil.toLocaleDateString("zh-HK")}`);
+      showToast(`✅ ${siteNameStr} 安全守則簽署完成！`);
     };
 
-    // Use hoisted constant as fallback so the array reference is stable
-    // across renders (was causing the site list to flicker/remount).
     const PROJECTS_LIST = projects.length > 0 ? projects : FALLBACK_PROJECT_NAMES;
+    const selectedName = typeof selectedProject === "object" ? selectedProject?.name : selectedProject;
+    const currentSigned = selectedName && todaySignedSites.includes(selectedName);
+    // Reset safety checks when switching to an unsigned site
+    const pickProject = (p) => {
+      const pn = typeof p === "object" ? p.name : p;
+      if (!todaySignedSites.includes(pn)) setSafetyChecks([false, false, false]);
+      setSelectedProject(p);
+    };
 
-    // The list items depend only on PROJECTS_LIST + the currently-selected
-    // project name. Memoising means unrelated re-renders (clock tick every
-    // 1s, GPS watch callbacks updating userLat/userLng, toast showing &
-    // hiding, etc.) do NOT rebuild all four <div>s and the browser no longer
-    // sees the selected card briefly vanish when one of those other state
-    // updates lands right after the click.
-    const selectedName = typeof selectedProject === "object"
-      ? selectedProject?.name
-      : selectedProject;
-    const handlePickProject = (p) => setSelectedProject(p);
-    const projectItems = PROJECTS_LIST.map((p) => {
+    // Build assigned-sites list (from admin dispatch) — these are prioritized
+    const assignedSiteNames = [...new Set(todayAssignments.map(a => a.site_name).filter(Boolean))];
+    const assignedProjects = assignedSiteNames.map(name => PROJECTS_LIST.find(p => (typeof p === "object" ? p.name : p) === name) || name);
+
+    // Other projects (not in assigned) — only shown when searching
+    const otherProjects = PROJECTS_LIST.filter(p => {
+      const pn = typeof p === "object" ? p.name : p;
+      return !assignedSiteNames.includes(pn) && (!projectSearch || pn.toLowerCase().includes(projectSearch.toLowerCase()));
+    });
+
+    const renderProjectCard = (p) => {
       const pName = typeof p === "object" ? p.name : p;
       const pKey = (typeof p === "object" && p.id) ? p.id : pName;
       const isSelected = selectedName === pName;
+      const isSignedToday = todaySignedSites.includes(pName);
       return (
-        <div key={pKey}
-          onClick={() => handlePickProject(p)}
+        <div key={pKey} onClick={() => pickProject(p)}
           style={{
             background: isSelected ? "var(--orange-glow)" : "var(--surface)",
             border: `1.5px solid ${isSelected ? "var(--orange)" : "var(--border)"}`,
-            borderRadius: 14, padding: "14px 16px",
-            display: "flex", alignItems: "center", gap: 12,
+            borderRadius: 14, padding: "12px 14px",
+            display: "flex", alignItems: "center", gap: 10,
             cursor: "pointer", transition: "all 0.15s",
           }}>
           <div style={{
             width: 22, height: 22, borderRadius: "50%",
             border: `2.5px solid ${isSelected ? "var(--orange)" : "var(--border)"}`,
             background: isSelected ? "var(--orange)" : "transparent",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0, transition: "all 0.15s",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
           }}>
             {isSelected && <span style={{ fontSize: 12, color: "#fff", fontWeight: 900 }}>✓</span>}
           </div>
-          <span style={{ fontSize: 14, fontWeight: 600, color: isSelected ? "var(--orange)" : "var(--text)" }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: isSelected ? "var(--orange)" : "var(--text)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
             🏗️ {pName}
           </span>
+          {isSignedToday ? (
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", background: "rgba(34,197,94,0.12)", padding: "3px 8px", borderRadius: 10, whiteSpace: "nowrap" }}>✅ 今日已簽</span>
+          ) : (
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#d63030", background: "rgba(214,48,48,0.12)", padding: "3px 8px", borderRadius: 10, whiteSpace: "nowrap" }}>⚠️ 未簽署</span>
+          )}
         </div>
       );
-    });
+    };
 
     return (
       <>
         {/* Step 1: Select Project */}
         <div className="section-label">第一步 — 選擇今日工程</div>
-        {!signed ? (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {projectItems}
+
+        {/* Recommended (admin-assigned) sites */}
+        {assignedProjects.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "var(--orange)", marginBottom: 6, letterSpacing: 1 }}>
+              🎯 今日指派工地 ({assignedProjects.length})
             </div>
-            {selectedProject === "" && (
-              <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", marginTop: 8 }}>
-                ⚠️ 請先選擇今日工程先可簽署
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {assignedProjects.map(renderProjectCard)}
+            </div>
+            {assignedProjects.length > 1 && (
+              <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 6, padding: "6px 10px", background: "rgba(240,192,0,0.06)", border: "1px solid rgba(240,192,0,0.2)", borderRadius: 8 }}>
+                💡 你今日被指派 {assignedProjects.length} 個工地，每個都必須分別簽署安全守則
               </div>
             )}
           </div>
-        ) : (
-          <div style={{ background: "var(--orange-glow)", border: "1.5px solid var(--orange)", borderRadius: 14, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+        )}
+
+        {/* Search bar for other sites */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 4 }}>🔍 搜尋其他工地（例如 EC-378）</div>
+          <input type="text" value={projectSearch} onChange={e => setProjectSearch(e.target.value)}
+            placeholder="輸入 EC 號或工地名稱..."
+            style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13 }} />
+        </div>
+
+        {projectSearch && (
+          <div style={{ marginBottom: 14 }}>
+            {otherProjects.length === 0 ? (
+              <div style={{ textAlign: "center", fontSize: 12, color: "var(--muted)", padding: 20 }}>
+                😕 找不到符合 "{projectSearch}" 的工地
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {otherProjects.slice(0, 10).map(renderProjectCard)}
+                {otherProjects.length > 10 && (
+                  <div style={{ fontSize: 10, color: "var(--muted)", textAlign: "center", padding: 6 }}>
+                    還有 {otherProjects.length - 10} 個結果，請輸入更具體嘅名稱
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {assignedProjects.length === 0 && !projectSearch && (
+          <div style={{ padding: 20, textAlign: "center", background: "var(--surface)", border: "1px dashed var(--border)", borderRadius: 10, marginBottom: 12, fontSize: 12, color: "var(--muted)" }}>
+            📭 今日未獲分配工地<br/>
+            <span style={{ fontSize: 10 }}>可使用上方搜尋欄手動搵工地</span>
+          </div>
+        )}
+
+        {selectedProject !== "" && (
+          <div style={{ background: "var(--orange-glow)", border: "1.5px solid var(--orange)", borderRadius: 14, padding: "10px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
             <span style={{ fontSize: 20 }}>🏗️</span>
-            <div>
-              <div style={{ fontSize: 11, color: "var(--orange)", fontWeight: 700, marginBottom: 2 }}>今日工程</div>
-              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)" }}>{siteName}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 10, color: "var(--orange)", fontWeight: 700, marginBottom: 2 }}>已選擇</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{siteName}</div>
             </div>
+            {currentSigned && <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e" }}>✅ 已簽</span>}
+          </div>
+        )}
+
+        {selectedProject === "" && (
+          <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center", marginBottom: 14 }}>
+            ⚠️ 請先選擇今日工程先可簽署
           </div>
         )}
 
@@ -2035,7 +2101,7 @@ PPE 包括：
           <div key={i}
             className={`check-row ${safetyChecks[i] ? "checked" : ""}`}
             onClick={() => {
-              if (signed) return;
+              if (currentSigned) return;
               const n = [...safetyChecks]; n[i] = !n[i]; setSafetyChecks(n);
             }}>
             <div className={`check-box ${safetyChecks[i] ? "checked" : ""}`}>{safetyChecks[i] ? "✓" : ""}</div>
@@ -2063,19 +2129,18 @@ PPE 包括：
             <div style={{ fontSize: 11, color: "var(--muted)" }}>上次簽署日期：{new Date(lastSafetyAck.signed_at).toLocaleDateString("zh-HK")}（每半年需重新簽署一次）</div>
           </div>
         )}
-        {signed ? (
+        {currentSigned ? (
           <div className="sign-area signed">
             <div style={{ fontSize: 28 }}>✅</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>已於 {signedTime} 完成簽署</div>
-            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>工程：{siteName}</div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>有效期 6 個月，時間戳記已記錄至系統</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>{siteName} 今日已簽署</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>如今日前往另一個工地，請選擇該工地並重新簽署</div>
           </div>
         ) : (
           <>
             <div className="sign-area" style={{ opacity: canSign ? 1 : 0.5 }}>
               <div style={{ fontSize: 28 }}>✍️</div>
               <div style={{ fontSize: 13, color: "var(--muted)" }}>
-                {!selectedProject ? "請先選擇工程" : !allChecked ? "請勾選所有確認項目" : "點擊下方按鈕確認簽署"}
+                {!selectedProject ? "請先選擇工程" : !allChecked ? "請勾選所有確認項目" : `點擊下方按鈕確認簽署 ${siteName}`}
               </div>
             </div>
             <button
