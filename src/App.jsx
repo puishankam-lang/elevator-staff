@@ -1210,6 +1210,19 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
   // Safety state
   const [safetyChecks, setSafetyChecks] = useState([false, false, false]);
   const [signed, setSigned] = useState(false);
+  const [lastSafetyAck, setLastSafetyAck] = useState(null);
+
+  useEffect(() => {
+    if (!EMPLOYEE?.id) return;
+    fetch(`${SUPABASE_URL}/rest/v1/safety_acknowledgments?employee_id=eq.${EMPLOYEE.id}&order=signed_at.desc&limit=1`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.json()).then(d => {
+      if (Array.isArray(d) && d.length > 0) setLastSafetyAck(d[0]);
+    }).catch(() => {});
+  }, [EMPLOYEE?.id]);
+
+  const safetyExpired = lastSafetyAck && new Date(lastSafetyAck.valid_until) < new Date();
+  const safetyDaysLeft = lastSafetyAck ? Math.ceil((new Date(lastSafetyAck.valid_until) - new Date()) / 86400000) : null;
   const [signedTime, setSignedTime] = useState(null);
   const [selectedProject, setSelectedProjectState] = useState("");
   const selectedProjectRef = React.useRef("");
@@ -1393,6 +1406,27 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
 
   const HomeScreen = () => (
     <>
+      {(safetyExpired || !lastSafetyAck) && (
+        <div onClick={() => setScreen("safety")}
+          style={{ background: "rgba(214,48,48,0.12)", border: "1.5px solid #d63030", borderRadius: 12, padding: "12px 14px", marginBottom: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 24 }}>⚠️</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#d63030", marginBottom: 2 }}>安全守則{safetyExpired ? "已過期" : "未簽署"}</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>{safetyExpired ? `已於 ${new Date(lastSafetyAck.valid_until).toLocaleDateString("zh-HK")} 過期，請重新簽署` : "請點擊立即簽署"}</div>
+          </div>
+          <div style={{ fontSize: 11, color: "#d63030", fontWeight: 700 }}>重簽 →</div>
+        </div>
+      )}
+      {lastSafetyAck && !safetyExpired && safetyDaysLeft <= 30 && (
+        <div onClick={() => setScreen("safety")}
+          style={{ background: "rgba(240,192,0,0.1)", border: "1px solid #f0c000", borderRadius: 12, padding: "10px 14px", marginBottom: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 18 }}>⏰</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#f0c000" }}>安全守則將於 {safetyDaysLeft} 日後過期</div>
+            <div style={{ fontSize: 10, color: "var(--muted)" }}>建議盡早重新簽署</div>
+          </div>
+        </div>
+      )}
       <div className="today-card">
         <div className="today-label">今日工地</div>
         <div className="today-site">{EMPLOYEE.site}</div>
@@ -1516,13 +1550,27 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
   const SafetyScreen = () => {
     const allChecked = safetyChecks.every(Boolean);
     const canSign = allChecked && selectedProject !== "";
+    const needReSign = safetyExpired || !lastSafetyAck;
 
-    const handleSign = () => {
+    const handleSign = async () => {
       if (!canSign) return;
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
+      const now = new Date();
+      const validUntil = new Date(now);
+      validUntil.setMonth(validUntil.getMonth() + 6);
+      try {
+        await sbInsert("safety_acknowledgments", {
+          employee_id: EMPLOYEE.id,
+          signed_at: now.toISOString(),
+          site: typeof selectedProject === "object" ? selectedProject.name : selectedProject,
+          valid_until: validUntil.toISOString().split("T")[0],
+          document_version: "2026-04",
+        });
+        setLastSafetyAck({ signed_at: now.toISOString(), valid_until: validUntil.toISOString().split("T")[0] });
+      } catch(e) {}
       setSigned(true);
       setSignedTime(t);
-      showToast("✅ 安全守則簽署完成！");
+      showToast(`✅ 安全守則簽署完成！有效至 ${validUntil.toLocaleDateString("zh-HK")}`);
     };
 
     // Use hoisted constant as fallback so the array reference is stable
@@ -1628,12 +1676,29 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
           </div>
         ))}
 
+        {!needReSign && lastSafetyAck && !signed && (
+          <div style={{ background: "rgba(34,197,94,0.08)", border: "1.5px solid #22c55e", borderRadius: 12, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ fontSize: 22 }}>✅</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#22c55e" }}>已簽署安全守則</div>
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>
+                簽署日：{new Date(lastSafetyAck.signed_at).toLocaleDateString("zh-HK")}　有效至：{new Date(lastSafetyAck.valid_until).toLocaleDateString("zh-HK")}（{safetyDaysLeft} 日後到期）
+              </div>
+            </div>
+          </div>
+        )}
+        {needReSign && lastSafetyAck && (
+          <div style={{ background: "rgba(214,48,48,0.12)", border: "1.5px solid #d63030", borderRadius: 12, padding: "12px 16px", marginBottom: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#d63030", marginBottom: 2 }}>⚠️ 安全守則已過期，請重新簽署</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>上次簽署日期：{new Date(lastSafetyAck.signed_at).toLocaleDateString("zh-HK")}（每半年需重新簽署一次）</div>
+          </div>
+        )}
         {signed ? (
           <div className="sign-area signed">
             <div style={{ fontSize: 28 }}>✅</div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>已於 {signedTime} 完成簽署</div>
             <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>工程：{siteName}</div>
-            <div style={{ fontSize: 11, color: "var(--muted)" }}>時間戳記已記錄至系統</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>有效期 6 個月，時間戳記已記錄至系統</div>
           </div>
         ) : (
           <>
