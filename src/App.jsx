@@ -1103,9 +1103,10 @@ export default function App() {
         if (projs.length > 0) setProjects(projs.map(p => ({
           name: p.name,
           id: p.id,
-          lat: p.site_lat || null,
-          lng: p.site_lng || null,
-          contractValue: p.contract_value || 0, // for auto-invoice on milestone done
+          lat: p.lat || p.site_lat || null,
+          lng: p.lng || p.site_lng || null,
+          radius: p.radius_m || 150,
+          contractValue: p.contract_value || 0,
         })));
         setDbReady(true);
       } catch(e) {
@@ -1300,6 +1301,7 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
   // selectedProject is either a string (name only) or object {name,lat,lng}
   const siteLat = selectedProject?.lat || null;
   const siteLng = selectedProject?.lng || null;
+  const siteRadius = selectedProject?.radius || ZONE_RADIUS;
   const siteName = selectedProject?.name || (typeof selectedProject === "string" ? selectedProject : "");
 
   useEffect(() => {
@@ -1326,7 +1328,7 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
         if (siteLat && siteLng) {
           const dist = getDistance(latitude, longitude, siteLat, siteLng);
           setDistToSite(Math.round(dist));
-          const inZone = dist <= ZONE_RADIUS;
+          const inZone = dist <= siteRadius;
           setIsInZone(inZone);
 
           // Auto sign out if leaves zone after check-in
@@ -1669,11 +1671,17 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
           const sn = typeof selectedProject === "object" ? selectedProject.name : selectedProject;
           const sl = typeof selectedProject === "object" ? selectedProject.lat : null;
           const sg = typeof selectedProject === "object" ? selectedProject.lng : null;
+          const sRadius = typeof selectedProject === "object" ? (selectedProject.radius || ZONE_RADIUS) : ZONE_RADIUS;
 
           if (sl && sg) {
             const dist = getDistance(latitude, longitude, sl, sg);
             setDistToSite(Math.round(dist));
-            setIsInZone(dist <= ZONE_RADIUS);
+            const inZone = dist <= sRadius;
+            setIsInZone(inZone);
+            if (!inZone) {
+              showToast(`❌ 你唔喺工地範圍內！距離工地 ${Math.round(dist)}m（需要 ${sRadius}m 內）`, "error");
+              return;
+            }
           }
 
           const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
