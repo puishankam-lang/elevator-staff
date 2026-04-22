@@ -1755,8 +1755,8 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
     const selectedName = typeof selectedProject === "object"
       ? selectedProject?.name
       : selectedProject;
-    const handlePickProject = useCallback((p) => setSelectedProject(p), []);
-    const projectItems = useMemo(() => PROJECTS_LIST.map((p) => {
+    const handlePickProject = (p) => setSelectedProject(p);
+    const projectItems = PROJECTS_LIST.map((p) => {
       const pName = typeof p === "object" ? p.name : p;
       const pKey = (typeof p === "object" && p.id) ? p.id : pName;
       const isSelected = selectedName === pName;
@@ -1784,7 +1784,7 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
           </span>
         </div>
       );
-    }), [PROJECTS_LIST, selectedName, handlePickProject]);
+    });
 
     return (
       <>
