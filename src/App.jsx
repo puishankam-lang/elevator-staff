@@ -1665,7 +1665,7 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
       return match || a.site_name;
     });
     const hasDispatch = assignedSites.length > 0;
-    const SITE_LIST = hasDispatch ? assignedSites : (projects.length > 0 ? projects : FALLBACK_SITE_NAMES);
+    const SITE_LIST = hasDispatch ? assignedSites : [];
     const hasSiteCoords = siteLat && siteLng;
     const coordStr = userLat && userLng
       ? `${userLat.toFixed(5)}°N  ${userLng.toFixed(5)}°E`
@@ -1810,7 +1810,7 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
               }}
               style={{ width:"100%", background:"var(--surface)", border:`1.5px solid ${selectedProject?"var(--orange)":"var(--border)"}`, color:selectedProject?"var(--text)":"var(--muted)", borderRadius:14, padding:"14px 16px", fontSize:14, fontFamily:"var(--font)", marginBottom:16, fontWeight:600 }}
             >
-              <option value="">{hasDispatch ? "── 今日指定工地 ──" : "── 選擇今日工地 ──"}</option>
+              <option value="">{hasDispatch ? "── 今日指定工地 ──" : "── 今日未獲分配工地 ──"}</option>
               {SITE_LIST.map((p) => {
                 const name = typeof p === "object" ? p.name : p;
                 const pKey = (typeof p === "object" && p.id) ? p.id : name;
