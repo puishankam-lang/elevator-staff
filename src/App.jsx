@@ -1384,6 +1384,10 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
   const [siteAcks, setSiteAcks] = useState({}); // { siteName: { signed_at, valid_until } } — latest valid ack per site
   const [projectSearch, setProjectSearch] = useState("");
   const [internalSignedToday, setInternalSignedToday] = useState(null); // today's internal_daily_signs record or null
+  const [generalAck, setGeneralAck] = useState(null); // latest valid general (company-wide) ack
+  const [showGeneralModal, setShowGeneralModal] = useState(false);
+  const [generalChecks, setGeneralChecks] = useState([false, false, false]);
+  const [generalSigning, setGeneralSigning] = useState(false);
 
   useEffect(() => {
     if (!EMPLOYEE?.id) return;
@@ -1411,7 +1415,38 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
     }).then(r => r.json()).then(d => {
       if (Array.isArray(d) && d[0]) setInternalSignedToday(d[0]);
     }).catch(() => {});
+    // Fetch general (company-wide, 6-month) safety ack
+    fetch(`${SUPABASE_URL}/rest/v1/safety_acknowledgments?employee_id=eq.${EMPLOYEE.id}&ack_type=eq.general&order=signed_at.desc&limit=1`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.json()).then(d => {
+      if (Array.isArray(d) && d[0] && new Date(d[0].valid_until) >= new Date()) setGeneralAck(d[0]);
+    }).catch(() => {});
   }, [EMPLOYEE?.id]);
+
+  const generalDaysLeft = generalAck ? Math.ceil((new Date(generalAck.valid_until) - new Date()) / 86400000) : null;
+  const generalExpired = !generalAck;
+
+  const handleSignGeneral = async () => {
+    if (!generalChecks.every(Boolean)) { showToast("請勾選所有確認項目", "error"); return; }
+    setGeneralSigning(true);
+    const now = new Date();
+    const validUntil = new Date(now); validUntil.setMonth(validUntil.getMonth() + 6);
+    try {
+      const res = await sbInsert("safety_acknowledgments", {
+        employee_id: EMPLOYEE.id,
+        signed_at: now.toISOString(),
+        site: "__COMPANY_GENERAL__",
+        valid_until: validUntil.toISOString().split("T")[0],
+        document_version: "2026-04",
+        ack_type: "general",
+      });
+      if (Array.isArray(res) && res[0]) setGeneralAck(res[0]);
+      showToast(`✅ 公司通用版安全守則簽署完成！有效至 ${validUntil.toLocaleDateString("zh-HK")}`);
+      setShowGeneralModal(false);
+      setGeneralChecks([false, false, false]);
+    } catch(e) { showToast("❌ 簽署失敗：" + e.message, "error"); }
+    setGeneralSigning(false);
+  };
 
   const safetyExpired = lastSafetyAck && new Date(lastSafetyAck.valid_until) < new Date();
   const safetyDaysLeft = lastSafetyAck ? Math.ceil((new Date(lastSafetyAck.valid_until) - new Date()) / 86400000) : null;
@@ -1616,6 +1651,29 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: "#f0c000" }}>安全守則將於 {safetyDaysLeft} 日後過期</div>
             <div style={{ fontSize: 10, color: "var(--muted)" }}>建議盡早重新簽署</div>
+          </div>
+        </div>
+      )}
+
+      {/* General (company-wide) safety ack banner */}
+      {generalExpired && (
+        <div onClick={() => setShowGeneralModal(true)}
+          style={{ background: "rgba(96,165,250,0.08)", border: "1.5px solid #60a5fa", borderRadius: 12, padding: "12px 14px", marginBottom: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 22 }}>🛡️</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: "#60a5fa", marginBottom: 2 }}>公司通用版安全守則 — 待簽署</div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>勞保合規必要文件，每 6 個月一次</div>
+          </div>
+          <div style={{ fontSize: 11, color: "#60a5fa", fontWeight: 700 }}>簽署 →</div>
+        </div>
+      )}
+      {generalAck && generalDaysLeft <= 30 && (
+        <div onClick={() => setShowGeneralModal(true)}
+          style={{ background: "rgba(240,192,0,0.08)", border: "1px solid #f0c000", borderRadius: 12, padding: "10px 14px", marginBottom: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 18 }}>⏰</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#f0c000" }}>公司通用版守則將於 {generalDaysLeft} 日後過期</div>
+            <div style={{ fontSize: 10, color: "var(--muted)" }}>建議提早重簽</div>
           </div>
         </div>
       )}
@@ -4115,6 +4173,58 @@ PPE 包括：
 
         {/* Toast */}
         {toast && <div className={`toast ${toast.type}`}>{toast.msg}</div>}
+
+        {/* General company-wide safety ack modal */}
+        {showGeneralModal && (
+          <div onClick={() => setShowGeneralModal(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background: "var(--bg)", border: "1.5px solid #60a5fa", borderRadius: 16, padding: 18, width: "100%", maxWidth: 440, maxHeight: "92vh", overflowY: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 900, color: "#60a5fa" }}>🛡️ 公司通用版安全守則</div>
+                  <div style={{ fontSize: 10, color: "var(--muted)" }}>每 6 個月簽署一次 · 勞保合規必要</div>
+                </div>
+                <button onClick={() => setShowGeneralModal(false)}
+                  style={{ background: "none", border: "none", color: "var(--muted)", fontSize: 22, cursor: "pointer" }}>✕</button>
+              </div>
+              <div className="safety-scroll" style={{ whiteSpace: "pre-wrap", fontSize: 11, lineHeight: 1.7, maxHeight: "40vh", overflowY: "auto", padding: 12, background: "var(--surface)", borderRadius: 10, border: "1px solid var(--border)", marginBottom: 12 }}>
+{`《升降機工程公司｜安全培訓及承諾書》
+
+一、目的
+為確保所有從事升降機及自動梯安裝、維修、保養、改造及相關工程之員工，正確認識並遵守香港最新之安全法例、機電署（EMSD）實務守則及公司安全管理制度，預防工業意外，保障員工、客戶及公眾安全。
+
+(完整版共 11 章，包括：法例標準、培訓內容、PPE 要求、工具檢查、通訊報告、員工承諾等)
+
+—— 本守則為公司內部通用版本，內容與地盤簽署版本一致 ——
+員工一經簽署即表示已閱讀、明白並同意遵守所有條款。
+此簽署獨立於地盤簽署記錄，有效期 6 個月。`}
+              </div>
+              {[
+                { label: "我已閱讀並明白完整安全守則內容", sub: "公司通用版" },
+                { label: "我確認個人防護裝備狀態良好", sub: "日常工作備用" },
+                { label: "我同意遵守公司所有安全政策及規定", sub: "包括勞保合規責任" },
+              ].map((item, i) => (
+                <div key={i}
+                  className={`check-row ${generalChecks[i] ? "checked" : ""}`}
+                  style={{ marginBottom: 6 }}
+                  onClick={() => {
+                    const n = [...generalChecks]; n[i] = !n[i]; setGeneralChecks(n);
+                  }}>
+                  <div className={`check-box ${generalChecks[i] ? "checked" : ""}`}>{generalChecks[i] ? "✓" : ""}</div>
+                  <div>
+                    <div className="check-text">{item.label}</div>
+                    <div className="check-sub">{item.sub}</div>
+                  </div>
+                </div>
+              ))}
+              <button onClick={handleSignGeneral} disabled={generalSigning || !generalChecks.every(Boolean)}
+                style={{ width: "100%", marginTop: 10, background: generalChecks.every(Boolean) ? "#60a5fa" : "#1e2330", color: generalChecks.every(Boolean) ? "#fff" : "var(--muted)", border: "none", borderRadius: 12, padding: "12px 16px", fontSize: 14, fontWeight: 800, cursor: generalChecks.every(Boolean) ? "pointer" : "default" }}>
+                {generalSigning ? "簽署中..." : "✍️ 確認簽署（有效 6 個月）"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
