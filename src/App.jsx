@@ -1719,8 +1719,15 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
     const handleCheckOut = async () => {
       const t = clockTick.toLocaleTimeString("zh-HK", { hour: "2-digit", minute: "2-digit" });
 
-      // Optionally grab fresh GPS on checkout
+      // GPS zone check on checkout
       const doCheckout = async (outLat, outLng, outAcc) => {
+        if (siteLat && siteLng && outLat && outLng) {
+          const dist = getDistance(outLat, outLng, siteLat, siteLng);
+          if (dist > siteRadius) {
+            showToast(`❌ 你唔喺工地範圍內！距離工地 ${Math.round(dist)}m（需要 ${siteRadius}m 內）`, "error");
+            return;
+          }
+        }
         setCheckedOut(true); setCheckOutTime(t);
         showToast("👋 簽退完成！");
         const checkOutData = {
