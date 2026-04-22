@@ -861,16 +861,31 @@ function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB, rememb
   const [step, setStep] = useState("phone"); // "phone" | "pin"
   const [foundEmp, setFoundEmp] = useState(null);
 
-  const handlePhoneNext = () => {
+  const [searching, setSearching] = useState(false);
+  const handlePhoneNext = async () => {
     const cleanPhone = phone.replace(/\s/g, "");
-    // Check Supabase employees first, then always fallback to EMPLOYEE_DB
+    // Check local employees first
     const allEmps = [...employees];
     EMPLOYEE_DB.forEach(e => { if (!allEmps.find(x => x.phone === e.phone)) allEmps.push(e); });
     const emp = allEmps.find(e => e.phone === cleanPhone);
-    if (!emp) { setError("找不到此手機號碼，請聯絡老闆"); return; }
-    setFoundEmp(emp);
-    setError("");
-    setStep("pin");
+    if (emp) { setFoundEmp(emp); setError(""); setStep("pin"); return; }
+    // Not found locally — try Supabase directly (in case data hasn't loaded yet)
+    setSearching(true);
+    try {
+      const [emps, subs] = await Promise.all([
+        sbFetch("employees", { filter: `phone=eq.${cleanPhone}`, limit: 1 }).catch(() => []),
+        sbFetch("subcontractor_workers", { filter: `phone=eq.${cleanPhone}`, limit: 1 }).catch(() => [])
+      ]);
+      const found = emps[0] || subs[0];
+      if (found) {
+        const isSub = !emps[0];
+        const mapped = { id: found.id, name: found.name, role: found.role || (isSub ? "判頭技工" : "電梯技工"), phone: found.phone, pin: found.pin || "1234", site: found.site || "工地", rate: found.daily_rate || 850, color: found.color || "#FF6B1A", isSub, contractor_name: found.contractor_name || "", presentDays: 22, salaryHistory: [] };
+        setFoundEmp(mapped); setError(""); setStep("pin");
+      } else {
+        setError("找不到此手機號碼，請聯絡老闆");
+      }
+    } catch(e) { setError("找不到此手機號碼，請聯絡老闆"); }
+    setSearching(false);
   };
 
   const handlePinLogin = () => {
@@ -945,8 +960,8 @@ function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB, rememb
               </div>
             </div>
 
-            <button onClick={handlePhoneNext} style={{ width: "100%", background: "linear-gradient(135deg, var(--orange), var(--orange-d))", border: "none", borderRadius: 14, padding: "18px", fontSize: 17, fontWeight: 900, color: "#fff", cursor: "pointer", fontFamily: "var(--font)", boxShadow: "0 8px 24px rgba(255,107,26,0.3)" }}>
-              下一步 →
+            <button onClick={handlePhoneNext} disabled={searching} style={{ width: "100%", background: "linear-gradient(135deg, var(--orange), var(--orange-d))", border: "none", borderRadius: 14, padding: "18px", fontSize: 17, fontWeight: 900, color: "#fff", cursor: "pointer", fontFamily: "var(--font)", boxShadow: "0 8px 24px rgba(255,107,26,0.3)", opacity: searching ? 0.6 : 1 }}>
+              {searching ? "驗證中..." : "下一步 →"}
             </button>
 
           </>
