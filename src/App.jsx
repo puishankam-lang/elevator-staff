@@ -901,7 +901,7 @@ function LoginScreen({ onLogin, error, setError, employees = EMPLOYEE_DB, rememb
       {/* Logo */}
       <div style={{ marginBottom: 40, textAlign: "center" }}>
         <div style={{ width: 72, height: 72, background: "linear-gradient(135deg, var(--orange), var(--orange-d))", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, margin: "0 auto 14px", boxShadow: "0 8px 32px rgba(255,107,26,0.35)" }}>🏗️</div>
-        <div style={{ fontFamily: "var(--font)", fontWeight: 900, fontSize: 22, color: "var(--text)", marginBottom: 4 }}>電梯工程</div>
+        <div style={{ fontFamily: "var(--font)", fontWeight: 900, fontSize: 18, color: "var(--text)", marginBottom: 4 }}>俊輝電梯工程有限公司</div>
         <div style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>員工工作平台</div>
       </div>
 
@@ -3483,7 +3483,7 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
               <div className="avatar-lg" style={{ background: EMPLOYEE.color }}>{EMPLOYEE.name[0]}</div>
               <div className="greet-text">
                 <div className="greet-name">早晨，{EMPLOYEE.name} 👋</div>
-                <div className="greet-sub">{EMPLOYEE.role} · 電梯工程</div>
+                <div className="greet-sub">{EMPLOYEE.role} · 俊輝電梯工程</div>
               </div>
               <div className="greet-badge">7月</div>
             </div>
