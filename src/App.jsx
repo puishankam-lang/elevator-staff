@@ -2752,6 +2752,9 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
           work_date: new Date().toISOString().split("T")[0],
           work_time: workTime,
           submitted_at: new Date().toISOString(),
+          gps_lat: userLat ? String(userLat) : null,
+          gps_lng: userLng ? String(userLng) : null,
+          gps_accuracy: gpsAccuracy || null,
         });
         // WhatsApp via Make
         try {
