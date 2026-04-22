@@ -1380,19 +1380,27 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
   const [safetyChecks, setSafetyChecks] = useState([false, false, false]);
   const [signed, setSigned] = useState(false);
   const [lastSafetyAck, setLastSafetyAck] = useState(null);
-  const [todaySignedSites, setTodaySignedSites] = useState([]);
+  const [siteAcks, setSiteAcks] = useState({}); // { siteName: { signed_at, valid_until } } — latest valid ack per site
   const [projectSearch, setProjectSearch] = useState("");
 
   useEffect(() => {
     if (!EMPLOYEE?.id) return;
-    fetch(`${SUPABASE_URL}/rest/v1/safety_acknowledgments?employee_id=eq.${EMPLOYEE.id}&order=signed_at.desc&limit=10`, {
+    fetch(`${SUPABASE_URL}/rest/v1/safety_acknowledgments?employee_id=eq.${EMPLOYEE.id}&order=signed_at.desc&limit=200`, {
       headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
     }).then(r => r.json()).then(d => {
       if (!Array.isArray(d)) return;
       if (d.length > 0) setLastSafetyAck(d[0]);
-      const today = new Date().toISOString().split("T")[0];
-      const signedToday = d.filter(a => a.signed_at && a.signed_at.startsWith(today) && a.site).map(a => a.site);
-      setTodaySignedSites([...new Set(signedToday)]);
+      // Group by site, keep latest non-expired ack per site
+      const now = new Date();
+      const byBrand = {};
+      d.forEach(a => {
+        if (!a.site || !a.valid_until) return;
+        if (new Date(a.valid_until) < now) return; // expired
+        if (!byBrand[a.site] || new Date(a.signed_at) > new Date(byBrand[a.site].signed_at)) {
+          byBrand[a.site] = a;
+        }
+      });
+      setSiteAcks(byBrand);
     }).catch(() => {});
   }, [EMPLOYEE?.id]);
 
@@ -1742,8 +1750,9 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
           valid_until: validUntil.toISOString().split("T")[0],
           document_version: "2026-04",
         });
-        setLastSafetyAck({ signed_at: now.toISOString(), valid_until: validUntil.toISOString().split("T")[0] });
-        setTodaySignedSites(prev => prev.includes(siteNameStr) ? prev : [...prev, siteNameStr]);
+        const newAck = { signed_at: now.toISOString(), valid_until: validUntil.toISOString().split("T")[0], site: siteNameStr };
+        setLastSafetyAck(newAck);
+        setSiteAcks(prev => ({ ...prev, [siteNameStr]: newAck }));
       } catch(e) {}
       setSigned(true);
       setSignedTime(t);
@@ -1752,11 +1761,12 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
 
     const PROJECTS_LIST = projects.length > 0 ? projects : FALLBACK_PROJECT_NAMES;
     const selectedName = typeof selectedProject === "object" ? selectedProject?.name : selectedProject;
-    const currentSigned = selectedName && todaySignedSites.includes(selectedName);
+    const currentAck = selectedName ? siteAcks[selectedName] : null;
+    const currentSigned = !!currentAck;
     // Reset safety checks when switching to an unsigned site
     const pickProject = (p) => {
       const pn = typeof p === "object" ? p.name : p;
-      if (!todaySignedSites.includes(pn)) setSafetyChecks([false, false, false]);
+      if (!siteAcks[pn]) setSafetyChecks([false, false, false]);
       setSelectedProject(p);
     };
 
@@ -1774,7 +1784,8 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
       const pName = typeof p === "object" ? p.name : p;
       const pKey = (typeof p === "object" && p.id) ? p.id : pName;
       const isSelected = selectedName === pName;
-      const isSignedToday = todaySignedSites.includes(pName);
+      const ack = siteAcks[pName];
+      const daysLeft = ack ? Math.ceil((new Date(ack.valid_until) - new Date()) / 86400000) : null;
       return (
         <div key={pKey} onClick={() => pickProject(p)}
           style={{
@@ -1795,8 +1806,11 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
           <span style={{ fontSize: 13, fontWeight: 600, color: isSelected ? "var(--orange)" : "var(--text)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
             🏗️ {pName}
           </span>
-          {isSignedToday ? (
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", background: "rgba(34,197,94,0.12)", padding: "3px 8px", borderRadius: 10, whiteSpace: "nowrap" }}>✅ 今日已簽</span>
+          {ack ? (
+            <span title={`簽於 ${new Date(ack.signed_at).toLocaleDateString("zh-HK")}，有效至 ${new Date(ack.valid_until).toLocaleDateString("zh-HK")}`}
+              style={{ fontSize: 10, fontWeight: 700, color: "#22c55e", background: "rgba(34,197,94,0.12)", padding: "3px 8px", borderRadius: 10, whiteSpace: "nowrap" }}>
+              ✅ 已簽 (剩{daysLeft}日)
+            </span>
           ) : (
             <span style={{ fontSize: 10, fontWeight: 700, color: "#d63030", background: "rgba(214,48,48,0.12)", padding: "3px 8px", borderRadius: 10, whiteSpace: "nowrap" }}>⚠️ 未簽署</span>
           )}
@@ -1866,6 +1880,7 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 10, color: "var(--orange)", fontWeight: 700, marginBottom: 2 }}>已選擇</div>
               <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{siteName}</div>
+              {currentAck && <div style={{ fontSize: 10, color: "#22c55e", marginTop: 2 }}>有效至 {new Date(currentAck.valid_until).toLocaleDateString("zh-HK")}</div>}
             </div>
             {currentSigned && <span style={{ fontSize: 11, fontWeight: 700, color: "#22c55e" }}>✅ 已簽</span>}
           </div>
@@ -2132,8 +2147,9 @@ PPE 包括：
         {currentSigned ? (
           <div className="sign-area signed">
             <div style={{ fontSize: 28 }}>✅</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>{siteName} 今日已簽署</div>
-            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>如今日前往另一個工地，請選擇該工地並重新簽署</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>{siteName} 已簽署</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>有效至 {new Date(currentAck.valid_until).toLocaleDateString("zh-HK")}（每半年重新簽署一次）</div>
+            <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 2 }}>如前往其他工地，請選擇該工地再簽署</div>
           </div>
         ) : (
           <>
