@@ -1077,29 +1077,33 @@ export default function App() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [emps, projs] = await Promise.all([
+        const [emps, projs, subWorkers] = await Promise.all([
           sbFetch("employees", { order: "created_at.asc" }),
-          sbFetch("projects", { filter: "phase=eq.active", order: "name.asc", limit: 200 })
+          sbFetch("projects", { filter: "phase=eq.active", order: "name.asc", limit: 200 }),
+          sbFetch("subcontractor_workers", { order: "created_at.asc" }).catch(() => [])
         ]);
-        // Only use Supabase employees if they have phone numbers
-        if (emps.length > 0 && emps.some(e => e.phone)) {
-          const mapped = emps.map(e => ({
-            id: e.id,
-            name: e.name,
-            role: e.role || "電梯技工",
-            phone: e.phone || "",
-            pin: e.pin || "1234",
-            site: e.site || "工地",
-            rate: e.daily_rate || 850,
-            color: e.color || "#FF6B1A",
-            presentDays: 22,
-            salaryHistory: [
-              { month: "2025年7月", amount: (e.daily_rate||850)*22, days: 22, status: "pending" },
-              { month: "2025年6月", amount: (e.daily_rate||850)*20, days: 20, status: "paid" },
-            ]
-          }));
-          setEmployees(mapped);
-        }
+        const mapEmp = (e, isSub) => ({
+          id: e.id,
+          name: e.name,
+          role: e.role || (isSub ? "判頭技工" : "電梯技工"),
+          phone: e.phone || "",
+          pin: e.pin || "1234",
+          site: e.site || "工地",
+          rate: e.daily_rate || 850,
+          color: e.color || "#FF6B1A",
+          isSub: !!isSub,
+          contractor_name: e.contractor_name || "",
+          presentDays: 22,
+          salaryHistory: [
+            { month: "2025年7月", amount: (e.daily_rate||850)*22, days: 22, status: "pending" },
+            { month: "2025年6月", amount: (e.daily_rate||850)*20, days: 20, status: "paid" },
+          ]
+        });
+        const allMapped = [
+          ...emps.filter(e => e.phone).map(e => mapEmp(e, false)),
+          ...subWorkers.filter(e => e.phone).map(e => mapEmp(e, true)),
+        ];
+        if (allMapped.length > 0) setEmployees(allMapped);
         // Always use EMPLOYEE_DB as login fallback (merged with Supabase)
         if (projs.length > 0) setProjects(projs.map(p => ({
           name: p.name,
