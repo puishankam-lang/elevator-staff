@@ -1486,6 +1486,49 @@ function MainApp({ user, onLogout, projects = [], allEmployees = [] }) {
   const [userLng, setUserLng] = useState(null);
   const [distToSite, setDistToSite] = useState(null);    // metres
   const [autoCheckoutTime] = useState("19:00");
+
+  // OT / Night shift state
+  const [otHours, setOtHours] = useState("");
+  const [otType, setOtType] = useState("regular"); // regular / weekend / holiday
+  const [isNightShift, setIsNightShift] = useState(false);
+  const [nightHours, setNightHours] = useState("");
+  const [otReason, setOtReason] = useState("");
+  const [otSubmitting, setOtSubmitting] = useState(false);
+  const [todayOT, setTodayOT] = useState(null);
+
+  useEffect(() => {
+    if (!EMPLOYEE?.id) return;
+    const today = new Date().toISOString().split("T")[0];
+    fetch(`${SUPABASE_URL}/rest/v1/overtime_records?employee_id=eq.${EMPLOYEE.id}&work_date=eq.${today}&limit=1`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` }
+    }).then(r => r.json()).then(d => {
+      if (Array.isArray(d) && d[0]) setTodayOT(d[0]);
+    }).catch(() => {});
+  }, [EMPLOYEE?.id]);
+
+  const handleSubmitOT = async () => {
+    const hrs = parseFloat(otHours) || 0;
+    const nHrs = parseFloat(nightHours) || 0;
+    if (hrs === 0 && !isNightShift) { showToast("⚠️ 請輸入 OT 時數或選擇夜更", "error"); return; }
+    setOtSubmitting(true);
+    try {
+      const res = await sbInsert("overtime_records", {
+        employee_id: EMPLOYEE.id,
+        work_date: new Date().toISOString().split("T")[0],
+        site: typeof selectedProject === "object" ? selectedProject?.name : selectedProject || EMPLOYEE.site,
+        ot_type: otType,
+        ot_hours: hrs,
+        night_shift: isNightShift,
+        night_hours: nHrs,
+        reason: otReason,
+        status: "pending",
+      });
+      if (Array.isArray(res) && res[0]) setTodayOT(res[0]);
+      showToast(`✅ 已提交 ${hrs > 0 ? `OT ${hrs}h` : ""}${isNightShift ? ` 夜更 ${nHrs}h` : ""}，待管理員審批`);
+      setOtHours(""); setNightHours(""); setOtReason(""); setIsNightShift(false); setOtType("regular");
+    } catch (e) { showToast("❌ 提交失敗：" + e.message, "error"); }
+    setOtSubmitting(false);
+  };
   const AUTO_CHECKOUT_HOUR = 19;
   const AUTO_CHECKOUT_MIN = 0;
   const ZONE_RADIUS = 200; // metres — slightly generous for HK urban GPS drift
@@ -2644,12 +2687,93 @@ PPE 包括：
             </button>
           </>
         ) : (
-          <div className="info-card" style={{ textAlign:"center", background:"rgba(34,197,94,0.06)", borderColor:"rgba(34,197,94,0.2)" }}>
-            <div style={{ fontSize:36, marginBottom:8 }}>✅</div>
-            <div style={{ fontSize:15, fontWeight:800, color:"var(--green)", marginBottom:4 }}>今日考勤完成</div>
-            <div style={{ fontSize:12, color:"var(--muted)" }}>簽到 {checkInTime} · 簽退 {checkOutTime}</div>
-            <div style={{ fontSize:12, color:"var(--orange)", marginTop:4 }}>{siteName}</div>
-          </div>
+          <>
+            <div className="info-card" style={{ textAlign:"center", background:"rgba(34,197,94,0.06)", borderColor:"rgba(34,197,94,0.2)", marginBottom: 12 }}>
+              <div style={{ fontSize:36, marginBottom:8 }}>✅</div>
+              <div style={{ fontSize:15, fontWeight:800, color:"var(--green)", marginBottom:4 }}>今日考勤完成</div>
+              <div style={{ fontSize:12, color:"var(--muted)" }}>簽到 {checkInTime} · 簽退 {checkOutTime}</div>
+              <div style={{ fontSize:12, color:"var(--orange)", marginTop:4 }}>{siteName}</div>
+            </div>
+
+            {/* OT / Night Shift Declaration */}
+            {todayOT ? (
+              <div style={{ background: "rgba(96,165,250,0.08)", border: "1.5px solid #60a5fa", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#60a5fa", marginBottom: 4 }}>📋 今日 OT / 夜更記錄（已提交）</div>
+                {todayOT.ot_hours > 0 && (
+                  <div style={{ fontSize: 11, color: "var(--text)" }}>⏰ OT 時數：<strong>{todayOT.ot_hours} 小時</strong>（{({regular:"平日",weekend:"假日/星期日",holiday:"公眾假期"})[todayOT.ot_type] || todayOT.ot_type}）</div>
+                )}
+                {todayOT.night_shift && (
+                  <div style={{ fontSize: 11, color: "var(--text)" }}>🌙 夜更：<strong>{todayOT.night_hours || 0} 小時</strong></div>
+                )}
+                <div style={{ fontSize: 10, color: todayOT.status === "approved" ? "#22c55e" : todayOT.status === "rejected" ? "#d63030" : "#f0c000", marginTop: 4, fontWeight: 600 }}>
+                  {todayOT.status === "approved" ? "✅ 已批核" : todayOT.status === "rejected" ? "❌ 已拒絕" : "⏳ 待管理員審批"}
+                </div>
+                {todayOT.reason && <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 3 }}>原因：{todayOT.reason}</div>}
+              </div>
+            ) : (
+              <div style={{ background: "var(--surface)", border: "1.5px dashed #60a5fa", borderRadius: 12, padding: "14px" }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#60a5fa", marginBottom: 4 }}>⏰ 今日有 OT 或夜更？</div>
+                <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 10 }}>如今日加班或夜更，請填寫以下資料申報（管理員會審批後計入薪酬）</div>
+
+                {/* OT hours */}
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 4 }}>⏰ OT 加班時數</div>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input type="number" step="0.5" min="0" max="12" value={otHours} onChange={e => setOtHours(e.target.value)}
+                      placeholder="例：2"
+                      style={{ flex: 1, background: "#0d0f12", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 8, padding: "8px 12px", fontSize: 13 }} />
+                    <span style={{ fontSize: 12, color: "var(--muted)" }}>小時</span>
+                  </div>
+                  {Number(otHours) > 0 && (
+                    <div style={{ display: "flex", gap: 5, marginTop: 6 }}>
+                      {[{ v: "regular", l: "平日" }, { v: "weekend", l: "假日/星期日" }, { v: "holiday", l: "公眾假期" }].map(t => (
+                        <button key={t.v} type="button" onClick={() => setOtType(t.v)}
+                          style={{ flex: 1, background: otType === t.v ? "#60a5fa" : "#1e2330", color: otType === t.v ? "#fff" : "var(--muted)", border: "none", borderRadius: 6, padding: "6px 8px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                          {t.l}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Night shift toggle */}
+                <div onClick={() => setIsNightShift(!isNightShift)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", background: isNightShift ? "rgba(96,165,250,0.12)" : "#0d0f12", border: `1px solid ${isNightShift ? "#60a5fa" : "var(--border)"}`, borderRadius: 8, cursor: "pointer", marginBottom: 10 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${isNightShift ? "#60a5fa" : "var(--border)"}`, background: isNightShift ? "#60a5fa" : "transparent", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {isNightShift && <span style={{ fontSize: 11, color: "#fff", fontWeight: 900 }}>✓</span>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: isNightShift ? "#60a5fa" : "var(--text)" }}>🌙 夜更（10pm – 6am）</div>
+                    <div style={{ fontSize: 9, color: "var(--muted)" }}>通常需要額外津貼</div>
+                  </div>
+                </div>
+                {isNightShift && (
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 4 }}>🌙 夜更時數</div>
+                    <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input type="number" step="0.5" min="0" max="12" value={nightHours} onChange={e => setNightHours(e.target.value)}
+                        placeholder="例：8"
+                        style={{ flex: 1, background: "#0d0f12", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 8, padding: "8px 12px", fontSize: 13 }} />
+                      <span style={{ fontSize: 12, color: "var(--muted)" }}>小時</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reason */}
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 10, color: "var(--muted)", marginBottom: 4 }}>📝 原因 / 備註（可選）</div>
+                  <input value={otReason} onChange={e => setOtReason(e.target.value)}
+                    placeholder="例：趕工期、客戶要求、緊急維修..."
+                    style={{ width: "100%", background: "#0d0f12", border: "1px solid var(--border)", color: "var(--text)", borderRadius: 8, padding: "8px 12px", fontSize: 12 }} />
+                </div>
+
+                <button onClick={handleSubmitOT} disabled={otSubmitting || (Number(otHours) <= 0 && !isNightShift)}
+                  style={{ width: "100%", background: (Number(otHours) > 0 || isNightShift) ? "#60a5fa" : "#1e2330", color: (Number(otHours) > 0 || isNightShift) ? "#fff" : "var(--muted)", border: "none", borderRadius: 10, padding: "10px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+                  {otSubmitting ? "提交中..." : "📤 提交 OT / 夜更申報"}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </>
     );
